@@ -15,12 +15,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// Ported from ui/src/app.js (the Electron renderer): the window.ipc bridge to
-// the main process is replaced by ./bridge.js, which talks WebHID directly.
+// The renderer talks to the keyboard directly over WebHID via ./bridge.js.
 "use strict";
 import "@fontsource/nunito/500.css";
+import "@fontsource/nunito/800.css";
 import "./app.css";
-import "./toggle.css";
 
 import YAML from "yaml";
 import * as bridge from "./bridge.js";
@@ -28,78 +27,77 @@ import keyboards from "./keyboards.js";
 import modifiers from "./modifiers.js";
 import { g, n } from "./tinydom.js";
 
+// --- state --------------------------------------------------------------
+
 class Config {
     constructor() {
         this.winRemap = {};
         this.macRemap = {};
     }
     getRemap(mode) {
-        if (mode === "mac") {
-            return Object.assign({}, this.macRemap);
-        } else {
-            return Object.assign({}, this.winRemap);
-        }
+        return Object.assign(
+            {},
+            mode === "mac" ? this.macRemap : this.winRemap,
+        );
     }
-
     setRemap(mode, incoming) {
         if (mode === "mac") {
             this.macRemap = incoming;
         } else {
             this.winRemap = incoming;
         }
-        redrawKeyboard();
-        redrawOptions();
+        render();
     }
-
     unmarshall(config) {
-        let keys = config.keys ?? {};
-        for (let key in keys) {
-            let remap = keys[key];
-            if (typeof remap == "string") {
-                keys[key] = { key: remap };
+        let normalize = (section) => {
+            section = section ?? {};
+            for (let key in section) {
+                if (typeof section[key] === "string") {
+                    section[key] = { key: section[key] };
+                }
             }
-        }
-
-        let mackeys = config.mackeys ?? {};
-        for (let key in mackeys) {
-            let remap = mackeys[key];
-            if (typeof remap == "string") {
-                mackeys[key] = { key: remap };
-            }
-        }
-        this.winRemap = keys;
-        this.setRemap("mac", mackeys);
-    }
-
-    marshall() {
-        return {
-            keys: this.winRemap,
-            mackeys: this.macRemap,
+            return section;
         };
+        this.winRemap = normalize(config.keys);
+        this.macRemap = normalize(config.mackeys);
+    }
+    marshall() {
+        return { keys: this.winRemap, mackeys: this.macRemap };
     }
 }
 
-window.unsafe = false;
-function safetyOff(silent = false) {
-    if (!silent) {
-        toast(
-            "Unsafe remapping enabled. If you remap Fn, this will change even your factory reset shortcut — be careful!",
-            "warning",
-            8000,
-        );
-    }
-    window.unsafe = true;
-    redrawOptions();
-}
 window.mode = "win";
 window.keyboardInfo = null;
-window.lastKey = null;
 window.currentKey = null;
+window.lastKey = null;
 window.clickCount = 0;
+window.unsafe = false;
+window.busy = false;
 window.config = new Config();
-// Snapshot of the keyboard's on-device state (marshalled form), used to
-// compute what a WRITE would actually change.
+// Snapshot of the keyboard's on-device state, to compute what a WRITE changes.
 window.deviceState = { keys: {}, mackeys: {} };
+window.layout = localStorage.getItem("nudelta-layout") || "qwerty";
+
+// --- keyboard layout labelling (QWERTY positions vs typed characters) ---
+
+// Keycodes are QWERTY-position HID scancodes; the OS applies its own layout.
+// On a French AZERTY OS layout these positions type different characters, so
+// we relabel them for display only — the written scancode is unchanged.
+const AZERTY_LABELS = {
+    q: "a",
+    a: "q",
+    w: "z",
+    z: "w",
+    semicolon: "m",
+    m: ",",
+};
+
+function layoutLabel(name) {
+    if (window.layout === "azerty" && name in AZERTY_LABELS) {
+        return AZERTY_LABELS[name];
+    }
+    return name;
+}
 
 function modifierLabel(modifierID) {
     let modifier = modifiers[modifierID];
@@ -109,6 +107,16 @@ function modifierLabel(modifierID) {
     return window.mode === "mac"
         ? modifier.label
         : (modifier.winLabel ?? modifier.label);
+}
+
+// --- small UI primitives ------------------------------------------------
+
+function button(label, onclick, className = "button") {
+    return n("button", (e) => {
+        e.className = className;
+        e.innerHTML = label;
+        e.onclick = onclick;
+    });
 }
 
 function toast(message, kind = "info", timeout = 4000) {
@@ -128,11 +136,7 @@ function toast(message, kind = "info", timeout = 4000) {
     );
 }
 
-function showErrorPanel(title, message) {
-    // Permission errors carry shell commands after a blank line; surface
-    // them in a copyable block instead of a wall of text.
-    let [text, ...rest] = String(message).split("\n\n");
-    let commands = rest.join("\n\n");
+function modal(build) {
     let overlay = n("div", (e) => {
         e.className = "modal-overlay";
         e.onclick = (ev) => {
@@ -143,55 +147,48 @@ function showErrorPanel(title, message) {
         e.appendChild(
             n("div", (card) => {
                 card.className = "modal-card card";
-                card.appendChild(
-                    n("h3", (h) => {
-                        h.innerHTML = title;
-                    }),
-                );
-                card.appendChild(
-                    n("p", (p) => {
-                        p.innerHTML = text;
-                    }),
-                );
-                if (commands) {
-                    card.appendChild(
-                        n("pre", (pre) => {
-                            pre.className = "command-block";
-                            pre.innerText = commands;
-                        }),
-                    );
-                }
-                card.appendChild(
-                    n("p", (row) => {
-                        row.className = "modal-buttons";
-                        if (commands && navigator.clipboard) {
-                            row.appendChild(
-                                n("button", (b) => {
-                                    b.className = "toolbar-button";
-                                    b.innerHTML = "Copy commands";
-                                    b.onclick = async () => {
-                                        await navigator.clipboard.writeText(
-                                            commands,
-                                        );
-                                        toast("Copied to clipboard", "success");
-                                    };
-                                }),
-                            );
-                        }
-                        row.appendChild(
-                            n("button", (b) => {
-                                b.className = "toolbar-button";
-                                b.innerHTML = "Close";
-                                b.onclick = () => overlay.remove();
-                            }),
-                        );
-                    }),
-                );
+                build(card, () => e.remove());
             }),
         );
     });
     document.body.appendChild(overlay);
+    return overlay;
 }
+
+function showErrorPanel(title, message) {
+    // Permission errors carry shell commands after a blank line; surface them
+    // in a copyable block instead of a wall of text.
+    let [text, ...rest] = String(message).split("\n\n");
+    let commands = rest.join("\n\n");
+    modal((card, close) => {
+        card.appendChild(n("h3", (h) => (h.innerHTML = title)));
+        card.appendChild(n("p", (p) => (p.innerHTML = text)));
+        if (commands) {
+            card.appendChild(
+                n("pre", (pre) => {
+                    pre.className = "command-block";
+                    pre.innerText = commands;
+                }),
+            );
+        }
+        card.appendChild(
+            n("p", (row) => {
+                row.className = "modal-buttons";
+                if (commands && navigator.clipboard) {
+                    row.appendChild(
+                        button("Copy commands", async () => {
+                            await navigator.clipboard.writeText(commands);
+                            toast("Copied to clipboard", "success");
+                        }),
+                    );
+                }
+                row.appendChild(button("Close", close));
+            }),
+        );
+    });
+}
+
+// --- keycode picker -----------------------------------------------------
 
 // KeyboardEvent.code -> nudelta keycode name, for "press a key" capture.
 const CAPTURE_CODE_MAP = (() => {
@@ -277,9 +274,9 @@ function groupKeycodes(keycodes) {
     return groups.filter((group) => group.names.length > 0);
 }
 
-function setPickerValue(button, name) {
-    button.setAttribute("data-value", name);
-    button.innerHTML = name;
+function setPickerValue(pickerButton, name) {
+    pickerButton.setAttribute("data-value", name);
+    pickerButton.innerHTML = layoutLabel(name);
 }
 
 function openKeycodePicker(alt) {
@@ -290,36 +287,29 @@ function openKeycodePicker(alt) {
     let keycodes = keyboards[window.keyboardInfo.kind].keycodes;
     let current = selector.getAttribute("data-value");
 
-    let overlay = n("div", (e) => {
-        e.className = "modal-overlay";
-        e.onclick = (ev) => {
-            if (ev.target === e) {
-                e.remove();
-            }
-        };
-    });
-
+    // Declared before modal() because its build callback runs synchronously
+    // and references these.
+    let overlay;
+    let groupsContainer;
     let pick = (name) => {
         overlay.remove();
         setPickerValue(selector, name);
         updateKeymap();
     };
-
-    let groupsContainer;
-    let render = (filter) => {
+    let renderGroups = (filter) => {
         groupsContainer.innerHTML = "";
         let needle = filter.trim().toLowerCase();
         for (let group of groupKeycodes(keycodes)) {
-            let names = group.names.filter((name) =>
-                name.toLowerCase().includes(needle),
+            let names = group.names.filter(
+                (name) =>
+                    name.toLowerCase().includes(needle) ||
+                    layoutLabel(name).toLowerCase().includes(needle),
             );
             if (names.length === 0) {
                 continue;
             }
             groupsContainer.appendChild(
-                n("h4", (h) => {
-                    h.innerHTML = group.title;
-                }),
+                n("h4", (h) => (h.innerHTML = group.title)),
             );
             groupsContainer.appendChild(
                 n("div", (grid) => {
@@ -331,7 +321,8 @@ function openKeycodePicker(alt) {
                                     name === current
                                         ? "picker-item current"
                                         : "picker-item";
-                                item.innerHTML = name;
+                                item.setAttribute("data-value", name);
+                                item.innerHTML = layoutLabel(name);
                                 item.onclick = () => pick(name);
                             }),
                         );
@@ -349,53 +340,100 @@ function openKeycodePicker(alt) {
         }
     };
 
-    overlay.appendChild(
-        n("div", (card) => {
-            card.className = "modal-card card picker-card";
+    overlay = modal((card) => {
+        card.classList.add("picker-card");
+        if (window.layout === "azerty") {
             card.appendChild(
-                n("input", (input) => {
-                    input.className = "picker-search";
-                    input.setAttribute("type", "search");
-                    input.setAttribute("placeholder", "Search keycodes…");
-                    input.oninput = () => render(input.value);
-                    input.onkeydown = (ev) => {
-                        if (ev.key === "Escape") {
-                            overlay.remove();
-                        } else if (ev.key === "Enter") {
-                            let first = overlay.querySelector(".picker-item");
-                            if (first) {
-                                pick(first.innerHTML);
-                            }
+                n("p", (p) => {
+                    p.className = "picker-hint";
+                    p.innerHTML =
+                        "AZERTY: labels show the character your keyboard types.";
+                }),
+            );
+        }
+        card.appendChild(
+            n("input", (input) => {
+                input.className = "picker-search";
+                input.setAttribute("type", "search");
+                input.setAttribute("placeholder", "Search keycodes…");
+                input.oninput = () => renderGroups(input.value);
+                input.onkeydown = (ev) => {
+                    if (ev.key === "Escape") {
+                        overlay.remove();
+                    } else if (ev.key === "Enter") {
+                        let first = overlay.querySelector(".picker-item");
+                        if (first) {
+                            pick(first.getAttribute("data-value"));
                         }
-                    };
-                }),
-            );
-            card.appendChild(
-                n("div", (e) => {
-                    groupsContainer = e;
-                    e.className = "picker-groups";
-                }),
-            );
-        }),
-    );
+                    }
+                };
+            }),
+        );
+        card.appendChild(
+            n("div", (e) => {
+                groupsContainer = e;
+                e.className = "picker-groups";
+            }),
+        );
+    });
 
-    document.body.appendChild(overlay);
-    render("");
+    renderGroups("");
     overlay.querySelector(".picker-search").focus();
 }
+
+function startKeyCapture(alt, captureButton) {
+    if (window.captureCleanup) {
+        window.captureCleanup();
+    }
+    captureButton.classList.add("listening");
+    captureButton.innerHTML = "…";
+
+    let timeoutID;
+    let cleanup = () => {
+        document.removeEventListener("keydown", handler, true);
+        clearTimeout(timeoutID);
+        captureButton.classList.remove("listening");
+        captureButton.innerHTML = "⌨";
+        window.captureCleanup = null;
+    };
+    let handler = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        cleanup();
+        let name = CAPTURE_CODE_MAP[ev.code];
+        let selector = g(alt ? "#keycode-selector-alt" : "#keycode-selector");
+        if (!name || !selector) {
+            toast(`No mapping for the "${ev.code}" key.`, "warning");
+            return;
+        }
+        let keycodes = keyboards[window.keyboardInfo.kind].keycodes;
+        if (!(name in keycodes)) {
+            toast(`"${name}" is not available on this keyboard.`, "warning");
+            return;
+        }
+        setPickerValue(selector, name);
+        updateKeymap();
+        toast(`Captured “${layoutLabel(name)}”.`, "success", 2000);
+    };
+    window.captureCleanup = cleanup;
+    document.addEventListener("keydown", handler, true);
+    timeoutID = setTimeout(cleanup, 5000);
+}
+
+// --- remap representation & diff ----------------------------------------
 
 function formatRemapEntry(entry) {
     if (!entry) {
         return "default";
     }
     if (typeof entry === "string") {
-        return entry;
+        return layoutLabel(entry);
     }
     if (entry.raw !== undefined && entry.raw !== null) {
         return `0x${entry.raw.toString(16).padStart(8, "0")}`;
     }
     let mods = (entry.modifiers ?? []).map(modifierLabel).join("");
-    return `${mods}${entry.key ?? ""}`;
+    return `${mods}${layoutLabel(entry.key ?? "")}`;
 }
 
 function normalizeRemapEntry(entry) {
@@ -418,7 +456,7 @@ function computeDiff() {
     let diffs = [];
     let marshalled = window.config.marshall();
     for (let [top, modeLabel] of [
-        ["keys", "Win"],
+        ["keys", "Windows"],
         ["mackeys", "Mac"],
     ]) {
         let current = marshalled[top] ?? {};
@@ -438,94 +476,7 @@ function computeDiff() {
     return diffs;
 }
 
-async function writeYAML() {
-    if (window.keyboardInfo === null) {
-        return;
-    }
-    let marshalled = window.config.marshall();
-    window.busy = true;
-    redrawOptions();
-    try {
-        await bridge.writeConfig(marshalled);
-        window.deviceState = structuredClone(marshalled);
-        toast("Wrote configuration successfully!", "success");
-    } catch (err) {
-        showErrorPanel("Failed to write configuration", err.message);
-        await refreshKeyboard();
-    } finally {
-        window.busy = false;
-        redrawKeyboard();
-        redrawOptions();
-    }
-}
-
-function showWriteConfirmation() {
-    let diffs = computeDiff();
-    if (diffs.length === 0 || window.keyboardInfo === null || window.busy) {
-        return;
-    }
-    let overlay = n("div", (e) => {
-        e.className = "modal-overlay";
-        e.onclick = (ev) => {
-            if (ev.target === e) {
-                e.remove();
-            }
-        };
-        e.appendChild(
-            n("div", (card) => {
-                card.className = "modal-card card";
-                card.appendChild(
-                    n("h3", (h) => {
-                        h.innerHTML = "Write these changes to the keyboard?";
-                    }),
-                );
-                card.appendChild(
-                    n("ul", (ul) => {
-                        ul.className = "modal-list";
-                        for (let d of diffs) {
-                            ul.appendChild(
-                                n("li", (li) => {
-                                    if (!d.to) {
-                                        li.className = "diff-reset";
-                                    }
-                                    li.innerHTML =
-                                        `<span class="diff-mode">${d.mode}</span> ` +
-                                        `<b>${d.id}</b>&nbsp;: ` +
-                                        `${formatRemapEntry(d.from)} → ${formatRemapEntry(d.to)}`;
-                                }),
-                            );
-                        }
-                    }),
-                );
-                card.appendChild(
-                    n("p", (row) => {
-                        row.className = "modal-buttons";
-                        row.appendChild(
-                            n("button", (b) => {
-                                b.className = "toolbar-button";
-                                b.innerHTML = "Cancel";
-                                b.onclick = () => overlay.remove();
-                            }),
-                        );
-                        row.appendChild(
-                            n("button", (b) => {
-                                b.className = "toolbar-button write-confirm";
-                                b.innerHTML = `Write ${diffs.length} change${
-                                    diffs.length > 1 ? "s" : ""
-                                }`;
-                                b.onclick = async () => {
-                                    overlay.remove();
-                                    await writeYAML();
-                                };
-                            }),
-                        );
-                    }),
-                );
-            }),
-        );
-    });
-    document.body.appendChild(overlay);
-}
+// --- device operations --------------------------------------------------
 
 async function refreshKeyboard(connect = false) {
     try {
@@ -551,21 +502,117 @@ async function refreshKeyboard(connect = false) {
             console.error("Could not read the current keymap:", err);
         }
     }
-    redrawKeyboard();
-    redrawOptions();
+    render();
+}
+
+function showWriteConfirmation() {
+    let diffs = computeDiff();
+    if (diffs.length === 0 || window.keyboardInfo === null || window.busy) {
+        return;
+    }
+    let overlay = modal((card, close) => {
+        card.appendChild(
+            n("h3", (h) => {
+                h.innerHTML = "Write these changes to the keyboard?";
+            }),
+        );
+        card.appendChild(
+            n("ul", (ul) => {
+                ul.className = "modal-list";
+                for (let d of diffs) {
+                    ul.appendChild(
+                        n("li", (li) => {
+                            if (!d.to) {
+                                li.className = "diff-reset";
+                            }
+                            li.innerHTML =
+                                `<span class="diff-mode">${d.mode}</span> ` +
+                                `<b>${d.id}</b>&nbsp;: ` +
+                                `${formatRemapEntry(d.from)} → ${formatRemapEntry(d.to)}`;
+                        }),
+                    );
+                }
+            }),
+        );
+        card.appendChild(
+            n("p", (row) => {
+                row.className = "modal-buttons";
+                row.appendChild(button("Cancel", close));
+                row.appendChild(
+                    button(
+                        `Write ${diffs.length} change${diffs.length > 1 ? "s" : ""}`,
+                        async () => {
+                            close();
+                            await writeYAML();
+                        },
+                        "button primary",
+                    ),
+                );
+            }),
+        );
+    });
+    return overlay;
+}
+
+async function writeYAML() {
+    if (window.keyboardInfo === null) {
+        return;
+    }
+    let marshalled = window.config.marshall();
+    window.busy = true;
+    render();
+    try {
+        await bridge.writeConfig(marshalled);
+        window.deviceState = structuredClone(marshalled);
+        toast("Wrote configuration successfully!", "success");
+    } catch (err) {
+        showErrorPanel("Failed to write configuration", err.message);
+        await refreshKeyboard();
+    } finally {
+        window.busy = false;
+        render();
+    }
+}
+
+function revertChanges() {
+    if (computeDiff().length === 0) {
+        return;
+    }
+    window.config.unmarshall(structuredClone(window.deviceState));
+    window.currentKey = null;
+    toast("Reverted to the keyboard's current state.", "info", 2500);
+    render();
 }
 
 async function openConfigFile(file) {
     let value = await file.text();
-
     try {
         bridge.validateConfig(value);
-
-        let config = YAML.parse(value);
-        window.config.unmarshall(config);
+        window.config.unmarshall(YAML.parse(value));
+        toast("Profile loaded. Review the changes, then Write.", "success");
     } catch (err) {
         showErrorPanel("Invalid YAML file", err.message);
     }
+}
+
+function pickConfigFile() {
+    if (window.keyboardInfo === null) {
+        toast(
+            "Connect a keyboard first: profiles are validated against it.",
+            "warning",
+        );
+        return;
+    }
+    let input = n("input", (e) => {
+        e.setAttribute("type", "file");
+        e.setAttribute("accept", ".yml,.yaml");
+        e.onchange = () => {
+            if (input.files.length !== 0) {
+                openConfigFile(input.files[0]);
+            }
+        };
+    });
+    input.click();
 }
 
 function downloadYaml(filename, object) {
@@ -604,12 +651,156 @@ async function backupConfigFile() {
     }
 }
 
-function redrawKeyboard() {
-    if (window.keyboardInfo === null) {
-        g(".keyboard-container").innerHTML = "";
-        g(".switcher").innerHTML = "";
-        return;
-    }
+// --- rendering ----------------------------------------------------------
+
+function segmented(options, current, onSelect) {
+    return n("div", (seg) => {
+        seg.className = "segmented";
+        for (let [value, label] of options) {
+            seg.appendChild(
+                button(
+                    label,
+                    () => {
+                        if (value !== current) {
+                            onSelect(value);
+                        }
+                    },
+                    value === current ? "seg-item active" : "seg-item",
+                ),
+            );
+        }
+    });
+}
+
+function renderStatus() {
+    let pill = g(".status-pill");
+    pill.innerHTML = "";
+    let connected = window.keyboardInfo !== null;
+    pill.className = connected ? "status-pill connected" : "status-pill";
+    pill.appendChild(n("span", (dot) => (dot.className = "status-dot")));
+    pill.appendChild(
+        n("span", (label) => {
+            label.innerHTML = connected
+                ? window.keyboardInfo.kind
+                : "Not connected";
+        }),
+    );
+}
+
+function renderOnboarding() {
+    let container = g(".onboarding");
+    container.innerHTML = "";
+    let supported = bridge.isSupported();
+    container.appendChild(
+        n("div", (card) => {
+            card.className = "onboarding-card card";
+            card.appendChild(
+                n("div", (e) => (e.className = "onboarding-logo")),
+            );
+            card.appendChild(
+                n("h2", (h) => {
+                    h.innerHTML = supported
+                        ? "Connect your NuPhy keyboard"
+                        : "Unsupported browser";
+                }),
+            );
+            card.appendChild(
+                n("p", (p) => {
+                    p.className = "onboarding-text";
+                    p.innerHTML = supported
+                        ? "Plug your Air75, Air60 or Halo75 (V1) in over USB, then click below and pick it from the list."
+                        : "This app talks to your keyboard through WebHID, which only Chromium-based browsers support. Please open it in Chrome, Edge or Brave.";
+                }),
+            );
+            if (supported) {
+                card.appendChild(
+                    button(
+                        "Connect keyboard",
+                        () => refreshKeyboard(true),
+                        "button primary large",
+                    ),
+                );
+                card.appendChild(
+                    n("p", (p) => {
+                        p.className = "onboarding-note";
+                        p.innerHTML =
+                            "On Linux you may need a udev rule first — the app will tell you the exact command if so.";
+                    }),
+                );
+            }
+        }),
+    );
+}
+
+function renderToolbar() {
+    let toolbar = g(".toolbar");
+    toolbar.innerHTML = "";
+
+    toolbar.appendChild(
+        n("div", (group) => {
+            group.className = "toolbar-group";
+            group.appendChild(
+                n("span", (l) => {
+                    l.className = "toolbar-label";
+                    l.innerHTML = "Editing";
+                }),
+            );
+            group.appendChild(
+                segmented(
+                    [
+                        ["win", "Windows"],
+                        ["mac", "Mac"],
+                    ],
+                    window.mode,
+                    (value) => {
+                        window.mode = value;
+                        window.currentKey = null;
+                        render();
+                    },
+                ),
+            );
+        }),
+    );
+
+    toolbar.appendChild(
+        n("div", (group) => {
+            group.className = "toolbar-group";
+            group.appendChild(
+                n("span", (l) => {
+                    l.className = "toolbar-label";
+                    l.innerHTML = "Layout";
+                    l.title =
+                        "How keycodes are labelled. Pick AZERTY if your OS uses a French layout.";
+                }),
+            );
+            group.appendChild(
+                segmented(
+                    [
+                        ["qwerty", "QWERTY"],
+                        ["azerty", "AZERTY"],
+                    ],
+                    window.layout,
+                    (value) => {
+                        window.layout = value;
+                        localStorage.setItem("nudelta-layout", value);
+                        render();
+                    },
+                ),
+            );
+        }),
+    );
+
+    toolbar.appendChild(
+        n("div", (group) => {
+            group.className = "toolbar-group toolbar-actions";
+            group.appendChild(button("Open…", pickConfigFile));
+            group.appendChild(button("Save…", saveConfigFile));
+            group.appendChild(button("Backup…", backupConfigFile));
+        }),
+    );
+}
+
+function renderKeyboard() {
     let keyboard = keyboards[window.keyboardInfo.kind];
     let container = g(".keyboard-container");
     let remap = window.config.getRemap(window.mode);
@@ -627,22 +818,24 @@ function redrawKeyboard() {
                         n("div", (e) => {
                             e.id = key.id;
                             let width = key.width * 4;
-                            let colorResolved = key.color;
-                            let color = `var(--${colorResolved})`;
-                            let label = key.label;
+                            let color = `var(--${key.color})`;
                             let labelColor =
-                                colorResolved == "white"
+                                key.color == "white"
                                     ? "var(--gray)"
                                     : "var(--white)";
                             let className = "key";
-
                             let remapEntry =
                                 remap[key.id] ??
                                 (key.altID ? remap[key.altID] : null);
                             if (remapEntry ?? false) {
                                 className += " modified";
                             }
-
+                            if (
+                                window.currentKey &&
+                                window.currentKey.id === key.id
+                            ) {
+                                className += " selected";
+                            }
                             if (key.altLabel) {
                                 className += " altlabel";
                             }
@@ -660,12 +853,10 @@ function redrawKeyboard() {
                             currentColumn += width;
                             e.appendChild(
                                 n("span", (e) => {
-                                    let styleString = `text-shadow: 0 0 0 ${labelColor};`;
-                                    e.style = styleString;
-                                    e.innerHTML = label;
-                                    if (key.altLabel) {
-                                        e.innerHTML = `${key.altLabel} <br /> ${key.label}`;
-                                    }
+                                    e.style = `text-shadow: 0 0 0 ${labelColor};`;
+                                    e.innerHTML = key.altLabel
+                                        ? `${key.altLabel} <br /> ${key.label}`
+                                        : key.label;
                                 }),
                             );
                             if (remapEntry ?? false) {
@@ -685,462 +876,254 @@ function redrawKeyboard() {
         }),
     );
 
-    let switcherContainer = g(".switcher");
-    switcherContainer.innerHTML = "";
-    switcherContainer.appendChild(
-        n("span", (e) => {
-            e.className =
-                window.mode === "win"
-                    ? "switcher-label active"
-                    : "switcher-label";
-            e.innerHTML = "Windows";
-        }),
-    );
-    switcherContainer.appendChild(
-        n("label", (e) => {
-            e.className = "toggle-switchy";
-            e.setAttribute("data-style", "rounded");
-            e.setAttribute("for", "mode-switcher");
-            e.appendChild(
-                n("input", (e) => {
-                    e.id = "mode-switcher";
-                    e.setAttribute("type", "checkbox");
-                    e.checked = window.mode == "mac";
-                    e.onchange = (ev) => {
-                        window.mode = ev.target.checked ? "mac" : "win";
-                        window.currentKey = null;
-                        redrawKeyboard();
-                        redrawOptions();
-                    };
-                }),
-            );
-            e.appendChild(
-                n("span", (e) => {
-                    e.className = "toggle";
-                    e.appendChild(
-                        n("span", (e) => {
-                            e.className = "switch";
-                        }),
-                    );
-                }),
-            );
-        }),
-    );
-    switcherContainer.appendChild(
-        n("span", (e) => {
-            e.className =
-                window.mode === "mac"
-                    ? "switcher-label active"
-                    : "switcher-label";
-            e.innerHTML = "Mac";
-        }),
-    );
-    switcherContainer.appendChild(
-        n("p", (e) => {
-            e.className = "switcher-note";
-            e.innerHTML =
-                "You are editing this layout's stored keymap — the active one depends on the keyboard's physical side switch.";
-        }),
-    );
+    g(".keyboard-caption").innerHTML =
+        "Editing the <b>" +
+        (window.mode === "mac" ? "Mac" : "Windows") +
+        "</b> keymap — the one that's live depends on the keyboard's physical side switch.";
 }
 
-function drawOptionArray(e, remap, key, alt, column, row) {
+function renderKeyEditor(container, key, alt) {
+    let remap = window.config.getRemap(window.mode);
     let id = alt ? key.altID : key.id;
+    let name = alt ? key.altName : key.name;
     let defaultMapping = alt ? key.altDefaultMapping : key.defaultMapping;
     let defaultModifiers = alt ? key.altDefaultModifiers : key.defaultModifiers;
 
-    let currentRemap = {};
-    let currentModifiers = defaultModifiers;
-    if (remap[id]) {
-        currentRemap = remap[id];
-        currentModifiers = currentRemap.modifiers ?? [];
-    }
+    let currentRemap = remap[id] ?? {};
+    let currentModifiers = remap[id]
+        ? (currentRemap.modifiers ?? [])
+        : defaultModifiers;
+    let value = currentRemap.key ?? defaultMapping;
 
-    let keycodes = window.keyboardInfo
-        ? keyboards[window.keyboardInfo.kind].keycodes
-        : [];
-
-    for (let modifierID in modifiers) {
-        let modifier = modifiers[modifierID];
-        e.appendChild(
-            n("div", (e) => {
-                if (currentModifiers.indexOf(modifierID) !== -1) {
-                    e.className = "key selected";
-                } else {
-                    e.className = "key";
-                }
-                let elementID = `modifier-${modifierID}`;
-                if (alt) {
-                    elementID += "-alt";
-                }
-                e.id = elementID;
-                e.style = `
-                    grid-column-start: ${column};
-                    grid-column-end: ${column};
-                    grid-row-start: ${row};
-                    grid-row-end: ${row + 1};
-                `;
-                e.appendChild(
-                    n("span", (e) => {
-                        e.innerHTML = modifierLabel(modifierID);
-                    }),
-                );
-                e.onclick = onClickModifier;
-            }),
-        );
-        column += 1;
-    }
-    e.appendChild(
-        n("button", (e) => {
-            let elementID = "keycode-selector";
-            if (alt) {
-                elementID += "-alt";
-            }
-            e.id = elementID;
-            e.className = "keycode-picker-button";
-            e.style = `
-                grid-column-start: ${column};
-                grid-column-end: ${column + 2};
-                grid-row-start: ${row};
-                grid-row-end: ${row + 1};
-            `;
-            column += 2;
-            let value = currentRemap.key ?? defaultMapping;
-            e.setAttribute("data-value", value);
-            e.innerHTML = value;
-            e.title = "Choose a keycode";
-            e.onclick = () => openKeycodePicker(alt);
+    container.appendChild(
+        n("div", (row) => {
+            row.className = "editor-row";
+            row.appendChild(
+                n("span", (l) => {
+                    l.className = "editor-key-name";
+                    l.innerHTML = name;
+                }),
+            );
+            row.appendChild(
+                n("span", (a) => {
+                    a.className = "editor-arrow";
+                    a.innerHTML = "→";
+                }),
+            );
+            row.appendChild(
+                n("button", (pickerButton) => {
+                    pickerButton.id = alt
+                        ? "keycode-selector-alt"
+                        : "keycode-selector";
+                    pickerButton.className = "keycode-picker-button";
+                    pickerButton.setAttribute("data-value", value);
+                    pickerButton.innerHTML = layoutLabel(value);
+                    pickerButton.title = "Choose a keycode";
+                    pickerButton.onclick = () => openKeycodePicker(alt);
+                }),
+            );
+            row.appendChild(
+                n("button", (captureButton) => {
+                    captureButton.className = "icon-button";
+                    captureButton.innerHTML = "⌨";
+                    captureButton.title = "Press a key to capture";
+                    captureButton.onclick = () =>
+                        startKeyCapture(alt, captureButton);
+                }),
+            );
+            row.appendChild(
+                n("div", (chips) => {
+                    chips.className = "modifier-chips";
+                    for (let modifierID in modifiers) {
+                        chips.appendChild(
+                            n("button", (chip) => {
+                                chip.id = alt
+                                    ? `modifier-${modifierID}-alt`
+                                    : `modifier-${modifierID}`;
+                                chip.className =
+                                    currentModifiers.indexOf(modifierID) !== -1
+                                        ? "modifier-chip selected"
+                                        : "modifier-chip";
+                                chip.innerHTML = modifierLabel(modifierID);
+                                chip.onclick = onClickModifier;
+                            }),
+                        );
+                    }
+                }),
+            );
         }),
     );
-    e.appendChild(
-        n("button", (btn) => {
-            btn.className = "toolbar-button capture-button";
-            btn.innerHTML = "⌨";
-            btn.title = "Press a key to capture";
-            btn.style = `
-                grid-column-start: ${column};
-                grid-column-end: ${column + 1};
-                grid-row-start: ${row};
-                grid-row-end: ${row + 1};
-            `;
-            btn.onclick = () => startKeyCapture(alt, btn);
-        }),
-    );
-    column += 1;
-
-    return column;
 }
 
-function startKeyCapture(alt, button) {
-    if (window.captureCleanup) {
-        window.captureCleanup();
-    }
-    button.classList.add("listening");
-    button.innerHTML = "…";
-
-    let timeoutID;
-    let cleanup = () => {
-        document.removeEventListener("keydown", handler, true);
-        clearTimeout(timeoutID);
-        button.classList.remove("listening");
-        button.innerHTML = "⌨";
-        window.captureCleanup = null;
-    };
-    let handler = (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        cleanup();
-        let name = CAPTURE_CODE_MAP[ev.code];
-        let selector = g(alt ? "#keycode-selector-alt" : "#keycode-selector");
-        if (!name || !selector) {
-            toast(`No mapping for the "${ev.code}" key.`, "warning");
-            return;
-        }
-        let keycodes = keyboards[window.keyboardInfo.kind].keycodes;
-        if (!(name in keycodes)) {
-            toast(`"${name}" is not available on this keyboard.`, "warning");
-            return;
-        }
-        setPickerValue(selector, name);
-        updateKeymap();
-    };
-    window.captureCleanup = cleanup;
-    document.addEventListener("keydown", handler, true);
-    timeoutID = setTimeout(cleanup, 5000);
-}
-
-function redrawOptions() {
-    let container = g(".option-container");
+function renderEditor() {
+    let container = g(".editor-container");
     container.innerHTML = "";
+    let key = window.currentKey;
+    let remappable = (key && key.remappable) || window.unsafe;
 
-    if (window.keyboardInfo === null) {
+    if (!key) {
         container.appendChild(
             n("div", (e) => {
-                e.style = `
-                grid-column-start: 1;
-                grid-column-end: 1;
-                grid-row-start: 1;
-                grid-row-end: 1;
-            `;
-                e.className = "keyboard-field";
-                e.appendChild(
-                    n("p", (e) => {
-                        e.innerHTML = bridge.isSupported()
-                            ? "No supported keyboard connected.<br />Make sure it's plugged in via USB, then click “Connect Keyboard”."
-                            : "This browser does not support WebHID.<br />Please use a Chromium-based browser (Chrome, Edge, Brave…) or the Nudelta desktop app.";
-                    }),
-                );
+                e.className = "editor-hint card";
+                e.innerHTML =
+                    "Click a key above to remap it. Your changes stay on screen until you press <b>Write</b>.";
+            }),
+        );
+        return;
+    }
+    if (!remappable) {
+        container.appendChild(
+            n("div", (e) => {
+                e.className = "editor-hint card";
+                e.innerHTML = `The <b>${key.name}</b> key cannot be remapped.`;
             }),
         );
         return;
     }
 
-    let remap = window.config.getRemap(window.mode);
     container.appendChild(
-        n("div", (e) => {
-            e.className = "option-matrix card";
-            let key = window.currentKey;
-            let columnCount = 1;
-            let remappable = (key && key.remappable) || window.unsafe;
-            if (key && remappable) {
-                let altIDExists = !!key.altID;
-
-                columnCount = drawOptionArray(
-                    e,
-                    remap,
-                    key,
-                    false,
-                    1,
-                    altIDExists ? 2 : 3,
+        n("div", (card) => {
+            card.className = "editor-card card";
+            renderKeyEditor(card, key, false);
+            if (key.altID) {
+                card.appendChild(
+                    n("div", (d) => (d.className = "editor-divider")),
                 );
-                e.appendChild(
-                    n("h3", (e) => {
-                        e.style = `
-                            grid-column-start: 1;
-                            grid-column-end: ${columnCount};
-                            grid-row-start: ${altIDExists ? 1 : 2};
-                            grid-row-end: ${altIDExists ? 2 : 3};
-                        `;
-                        e.innerHTML = `${key.name}`;
-                    }),
-                );
-                if (altIDExists) {
-                    columnCount = drawOptionArray(e, remap, key, true, 1, 4);
-                    e.appendChild(
-                        n("h3", (e) => {
-                            e.style = `
-                                grid-column-start: 1;
-                                grid-column-end: ${columnCount};
-                                grid-row-start: 3;
-                                grid-row-end: 4;
-                            `;
-                            e.innerHTML = `${key.altName}`;
-                        }),
-                    );
-                } else {
-                    e.appendChild(
-                        n("h3", (e) => {
-                            e.style = `
-                                grid-column-start: 1;
-                                grid-column-end: ${columnCount};
-                                grid-row-start: 4;
-                                grid-row-end: 5;
-                            `;
-                        }),
-                    );
-                }
-            } else if (key && !remappable) {
-                e.appendChild(
-                    n("h3", (e) => {
-                        e.style = `
-                            grid-column-start: 1;
-                            grid-column-end: ${columnCount + 6};
-                            grid-row-start: 2;
-                            grid-row-end: 5;
-                        `;
-                        e.innerHTML = `The ${key.name} key cannot be remapped.`;
-                    }),
-                );
-                columnCount += 6;
-            } else {
-                e.appendChild(
-                    n("h3", (e) => {
-                        e.style = `
-                            grid-column-start: 1;
-                            grid-column-end: ${columnCount + 6};
-                            grid-row-start: 2;
-                            grid-row-end: 5;
-                        `;
-                        e.id = "no-key-selected";
-                        e.innerHTML = "No key selected.";
-                    }),
-                );
-                columnCount += 6;
+                renderKeyEditor(card, key, true);
             }
-
-            columnCount += 1;
-
-            e.appendChild(
-                n("div", (e) => {
-                    e.style = `
-                        grid-column-start: ${columnCount};
-                        grid-column-end: ${columnCount + 3};
-                        grid-row-start: 2;
-                        grid-row-end: 3;
-                    `;
-                    e.className = "keyboard-field";
-                    e.appendChild(
-                        n("p", (e) => {
-                            e.innerHTML = window.keyboardInfo.info;
-                        }),
-                    );
-                    e.appendChild(
-                        n("p", (e) => {
-                            let count = computeDiff().length;
-                            e.className = "sync-status";
-                            e.innerHTML =
-                                count === 0
-                                    ? "In sync with keyboard"
-                                    : `${count} unwritten change${
-                                          count > 1 ? "s" : ""
-                                      }`;
-                            if (count > 0) {
-                                e.className += " dirty";
-                            }
-                        }),
-                    );
-                }),
-            );
-
-            e.appendChild(
-                n("div", (e) => {
-                    let diffCount = computeDiff().length;
-                    e.className = `key write-key`;
-                    if (
-                        window.keyboardInfo !== null &&
-                        diffCount > 0 &&
-                        !window.busy
-                    ) {
-                        e.className = `key write-key active`;
-                    }
-                    e.style = `
-                        grid-column-start: ${columnCount};
-                        grid-column-end: ${columnCount + 3};
-                        grid-row-start: 3;
-                        grid-row-end: 4;
-                    `;
-                    e.appendChild(
-                        n("p", (e) => {
-                            e.innerHTML = window.busy
-                                ? "WRITING…"
-                                : diffCount > 0
-                                  ? `WRITE (${diffCount})`
-                                  : "WRITE";
-                        }),
-                    );
-                    e.onclick = showWriteConfirmation;
-                }),
-            );
         }),
     );
 }
 
-function setsEqual(lhs, rhs) {
-    const _difference = new Set(lhs);
-    for (const elem of rhs) {
-        if (_difference.has(elem)) {
-            _difference.delete(elem);
-        } else {
-            _difference.add(elem);
-        }
-    }
-    return _difference.size == 0;
+function renderActionBar() {
+    let bar = g(".action-bar");
+    bar.innerHTML = "";
+    let count = computeDiff().length;
+
+    bar.appendChild(
+        n("span", (status) => {
+            status.className = count > 0 ? "sync-status dirty" : "sync-status";
+            status.innerHTML =
+                count === 0
+                    ? "✓ In sync with keyboard"
+                    : `● ${count} unwritten change${count > 1 ? "s" : ""}`;
+        }),
+    );
+    bar.appendChild(
+        n("div", (group) => {
+            group.className = "action-buttons";
+            let revert = button("Revert", revertChanges);
+            revert.disabled = count === 0 || window.busy;
+            group.appendChild(revert);
+            let write = button(
+                window.busy
+                    ? "Writing…"
+                    : count > 0
+                      ? `Write ${count} change${count > 1 ? "s" : ""}`
+                      : "Write",
+                showWriteConfirmation,
+                "button primary",
+            );
+            write.disabled = count === 0 || window.busy;
+            group.appendChild(write);
+        }),
+    );
 }
 
-/**
- *
- * @param {Event} event
- */
-function updateKeymap(event) {
-    let remap = window.config.getRemap(window.mode);
-    let key = window.currentKey;
+/** Master render: toggles onboarding vs workspace and repaints dynamic parts. */
+function render() {
+    let connected = window.keyboardInfo !== null;
+    g(".onboarding").style.display = connected ? "none" : "flex";
+    g(".workspace").style.display = connected ? "block" : "none";
+    g(".action-bar").style.display = connected ? "flex" : "none";
+    renderStatus();
+    if (connected) {
+        renderToolbar();
+        renderKeyboard();
+        renderEditor();
+        renderActionBar();
+    } else {
+        renderOnboarding();
+    }
+}
 
-    let currentRemap = remap[key.id] ?? {};
+// --- editing events -----------------------------------------------------
 
-    let incomingID = g("#keycode-selector").getAttribute("data-value");
+function setsEqual(lhs, rhs) {
+    const diff = new Set(lhs);
+    for (const elem of rhs) {
+        if (diff.has(elem)) {
+            diff.delete(elem);
+        } else {
+            diff.add(elem);
+        }
+    }
+    return diff.size == 0;
+}
+
+function readEditorInto(
+    remap,
+    id,
+    selectorID,
+    modifierSuffix,
+    defaultMapping,
+    defaultModifiers,
+) {
+    let currentRemap = remap[id] ?? {};
+    let incomingID = g(`#${selectorID}`).getAttribute("data-value");
     let incomingModifiers = new Set();
-    let defaultModifiers = new Set(key.defaultModifiers);
     for (let modifier in modifiers) {
-        let modifierNode = g(`#modifier-${modifier}`);
-        let selected = modifierNode.className.includes("selected");
-        if (selected) {
+        let node = g(`#modifier-${modifier}${modifierSuffix}`);
+        if (node && node.className.includes("selected")) {
             incomingModifiers.add(modifier);
         }
     }
-
-    let modifiersEqual = setsEqual(incomingModifiers, defaultModifiers);
-
-    if (incomingID == key.defaultMapping && modifiersEqual) {
-        remap[key.id] = {};
-        delete remap[key.id];
+    let modifiersEqual = setsEqual(
+        incomingModifiers,
+        new Set(defaultModifiers),
+    );
+    if (incomingID == defaultMapping && modifiersEqual) {
+        delete remap[id];
     } else {
         currentRemap.key = incomingID;
         currentRemap.modifiers = [...incomingModifiers];
         if (modifiersEqual) {
             delete currentRemap.modifiers;
         }
-        remap[key.id] = currentRemap;
+        remap[id] = currentRemap;
     }
+}
 
+function updateKeymap() {
+    let remap = window.config.getRemap(window.mode);
+    let key = window.currentKey;
+
+    readEditorInto(
+        remap,
+        key.id,
+        "keycode-selector",
+        "",
+        key.defaultMapping,
+        key.defaultModifiers,
+    );
     if (key.altID) {
-        let currentRemap = remap[key.altID] ?? {};
-        let incomingID = g("#keycode-selector-alt").getAttribute("data-value");
-        let incomingModifiers = new Set();
-        let defaultModifiers = new Set(key.altDefaultModifiers);
-        for (let modifier in modifiers) {
-            let modifierNode = g(`#modifier-${modifier}-alt`);
-            let selected = modifierNode.className.includes("selected");
-            if (selected) {
-                incomingModifiers.add(modifier);
-            }
-        }
-
-        let modifiersEqual = setsEqual(incomingModifiers, defaultModifiers);
-
-        if (incomingID == key.altDefaultMapping && modifiersEqual) {
-            remap[key.altID] = {};
-            delete remap[key.altID];
-        } else {
-            currentRemap.key = incomingID;
-            currentRemap.modifiers = [...incomingModifiers];
-            if (modifiersEqual) {
-                delete currentRemap.modifiers;
-            }
-            remap[key.altID] = currentRemap;
-        }
+        readEditorInto(
+            remap,
+            key.altID,
+            "keycode-selector-alt",
+            "-alt",
+            key.altDefaultMapping,
+            key.altDefaultModifiers,
+        );
     }
     window.config.setRemap(window.mode, remap);
 }
 
-/**
- *
- * @param {MouseEvent} event
- */
 function onClickModifier(event) {
-    let target = event.target;
-    if (target.className.includes("selected")) {
-        target.className = "key";
-    } else {
-        target.className = "key selected";
-    }
-
+    event.currentTarget.classList.toggle("selected");
     updateKeymap();
 }
 
-/**
- *
- * @param {MouseEvent} event
- */
 function onClickKey(event) {
     window.lastKey = window.currentKey;
     window.currentKey = JSON.parse(event.currentTarget.getAttribute("data"));
@@ -1151,102 +1134,85 @@ function onClickKey(event) {
     }
     if (!window.currentKey.remappable) {
         let remap = window.config.getRemap(window.mode);
-
         if (remap[window.currentKey.id]) {
             safetyOff(true);
         } else if (window.clickCount == 5) {
             safetyOff();
         }
     }
-    redrawOptions();
+    render();
 }
 
-function toolbarButton(label, onclick) {
-    return n("button", (e) => {
-        e.className = "toolbar-button";
-        e.innerHTML = label;
-        e.onclick = onclick;
-    });
+function safetyOff(silent = false) {
+    if (!silent) {
+        toast(
+            "Advanced remapping enabled. If you remap Fn, this changes even your factory-reset shortcut — be careful!",
+            "warning",
+            8000,
+        );
+    }
+    window.unsafe = true;
+    render();
 }
 
-async function main() {
+// --- bootstrap ----------------------------------------------------------
+
+function main() {
     let app = g(".app");
+    app.innerHTML = "";
 
     app.appendChild(
-        n("div", (e) => {
-            e.style = "padding-top: 10px;";
-            e.appendChild(
-                n("h1", (e) => {
-                    e.innerHTML = "νδ";
+        n("header", (header) => {
+            header.className = "app-header";
+            header.appendChild(
+                n("div", (brand) => {
+                    brand.className = "brand";
+                    brand.appendChild(
+                        n("span", (mark) => {
+                            mark.className = "brand-mark";
+                            mark.innerHTML = "νδ";
+                        }),
+                    );
+                    brand.appendChild(
+                        n("span", (title) => {
+                            title.className = "brand-title";
+                            title.innerHTML = "Nuphy Console";
+                        }),
+                    );
                 }),
             );
-        }),
-    );
-
-    app.appendChild(
-        n("p", (e) => {
-            e.className = "toolbar";
-            e.appendChild(
-                toolbarButton("Connect Keyboard", () => refreshKeyboard(true)),
-            );
-            e.appendChild(
-                toolbarButton("Open…", () => {
-                    if (window.keyboardInfo === null) {
-                        toast(
-                            "Connect a keyboard first: profiles are validated against it.",
-                            "warning",
-                        );
-                        return;
-                    }
-                    let input = n("input", (e) => {
-                        e.setAttribute("type", "file");
-                        e.setAttribute("accept", ".yml,.yaml");
-                        e.onchange = () => {
-                            if (input.files.length !== 0) {
-                                openConfigFile(input.files[0]);
-                            }
-                        };
-                    });
-                    input.click();
-                }),
-            );
-            e.appendChild(toolbarButton("Save…", saveConfigFile));
-            e.appendChild(toolbarButton("Backup…", backupConfigFile));
-        }),
-    );
-
-    app.appendChild(
-        n("p", (e) => {
-            e.appendChild(
-                n("div", (e) => {
-                    e.className = "keyboard-container";
-                }),
+            header.appendChild(
+                n("div", (pill) => (pill.className = "status-pill")),
             );
         }),
     );
 
-    app.appendChild(
-        n("p", (e) => {
-            e.className = "switcher";
-        }),
-    );
+    app.appendChild(n("div", (e) => (e.className = "onboarding")));
 
     app.appendChild(
-        n("p", (e) => {
-            e.appendChild(
-                n("div", (e) => {
-                    e.className = "option-container";
-                }),
+        n("main", (workspace) => {
+            workspace.className = "workspace";
+            workspace.appendChild(n("div", (e) => (e.className = "toolbar")));
+            workspace.appendChild(
+                n("div", (e) => (e.className = "keyboard-container")),
+            );
+            workspace.appendChild(
+                n("p", (e) => (e.className = "keyboard-caption")),
+            );
+            workspace.appendChild(
+                n("div", (e) => (e.className = "editor-container")),
             );
         }),
     );
+
+    app.appendChild(n("footer", (e) => (e.className = "action-bar")));
 
     if (bridge.isSupported()) {
         navigator.hid.addEventListener("connect", () => refreshKeyboard());
         navigator.hid.addEventListener("disconnect", () => refreshKeyboard());
-        await refreshKeyboard();
+        refreshKeyboard();
     } else {
-        redrawOptions();
+        render();
     }
 }
 
