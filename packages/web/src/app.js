@@ -790,20 +790,9 @@ function openLightingPanel() {
                     "Experimental — reverse-engineered. Sets a solid colour and effect.";
             }),
         );
-        card.appendChild(
-            n("div", (row) => {
-                row.className = "lighting-row";
-                row.appendChild(n("label", (l) => (l.textContent = "Colour")));
-                row.appendChild(
-                    n("input", (e) => {
-                        colorInput = e;
-                        e.setAttribute("type", "color");
-                        e.className = "lighting-color";
-                        e.value = "#ff0000";
-                    }),
-                );
-            }),
-        );
+        let colorRow;
+        let usesColor = (id) =>
+            LIGHTING_EFFECTS.find((fx) => fx.id === id)?.color ?? true;
         card.appendChild(
             n("div", (row) => {
                 row.className = "lighting-row";
@@ -820,6 +809,27 @@ function openLightingPanel() {
                                 }),
                             );
                         }
+                        e.onchange = () => {
+                            // Rainbow / multi-colour effects ignore the colour.
+                            colorRow.style.display = usesColor(Number(e.value))
+                                ? ""
+                                : "none";
+                        };
+                    }),
+                );
+            }),
+        );
+        card.appendChild(
+            n("div", (row) => {
+                colorRow = row;
+                row.className = "lighting-row";
+                row.appendChild(n("label", (l) => (l.textContent = "Colour")));
+                row.appendChild(
+                    n("input", (e) => {
+                        colorInput = e;
+                        e.setAttribute("type", "color");
+                        e.className = "lighting-color";
+                        e.value = "#ff0000";
                     }),
                 );
             }),

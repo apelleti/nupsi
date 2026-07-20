@@ -46,35 +46,44 @@ export const LightingEffect = {
     off: 0x00,
 } as const;
 
+export interface LightingEffectInfo {
+    id: number;
+    name: string;
+    /** Whether the effect uses the chosen colour. Rainbow/multi-colour effects
+     *  ignore it. From the official app's Cfg.ini `LedOptN` "color" flag. */
+    color: boolean;
+}
+
 /**
  * The hardware effect catalog. `id` is the value written to config[144] (the
  * effect id). Names come from the official NuPhy Console's own strings
  * (`tc_kb_led<id>` in its text.xml), translated from Japanese. Static (1) and
  * Reaction (12) are confirmed by USB capture; the others follow the same
- * id↔name mapping. `off` (id 0) is a best guess for the value.
+ * id↔name mapping. `color` is the app's per-effect colour-usable flag; `off`
+ * (id 0) is a best guess for the value.
  */
-export const LIGHTING_EFFECTS: readonly { id: number; name: string }[] = [
-    { id: 1, name: "Static" },
-    { id: 2, name: "Breathing" },
-    { id: 3, name: "Rainbow Wheel" },
-    { id: 4, name: "Flash Away" },
-    { id: 5, name: "Raindrops" },
-    { id: 6, name: "Rainbow Roulette" },
-    { id: 7, name: "Ripple Shining" },
-    { id: 8, name: "Twinkling Stars" },
-    { id: 9, name: "Shadow Disappear" },
-    { id: 10, name: "Retro Snake" },
-    { id: 11, name: "Neon Stream" },
-    { id: 12, name: "Reaction" },
-    { id: 13, name: "Sine Wave" },
-    { id: 14, name: "Scan" },
-    { id: 15, name: "Rotary Windmill" },
-    { id: 16, name: "Colorful Fall" },
-    { id: 17, name: "Blossom" },
-    { id: 18, name: "Rotating Storm" },
-    { id: 19, name: "Collision" },
-    { id: 20, name: "Perfect" },
-    { id: 0, name: "Off" },
+export const LIGHTING_EFFECTS: readonly LightingEffectInfo[] = [
+    { id: 1, name: "Static", color: true },
+    { id: 2, name: "Breathing", color: true },
+    { id: 3, name: "Rainbow Wheel", color: false },
+    { id: 4, name: "Flash Away", color: true },
+    { id: 5, name: "Raindrops", color: true },
+    { id: 6, name: "Rainbow Roulette", color: true },
+    { id: 7, name: "Ripple Shining", color: true },
+    { id: 8, name: "Twinkling Stars", color: true },
+    { id: 9, name: "Shadow Disappear", color: true },
+    { id: 10, name: "Retro Snake", color: true },
+    { id: 11, name: "Neon Stream", color: true },
+    { id: 12, name: "Reaction", color: true },
+    { id: 13, name: "Sine Wave", color: true },
+    { id: 14, name: "Scan", color: true },
+    { id: 15, name: "Rotary Windmill", color: false },
+    { id: 16, name: "Colorful Fall", color: false },
+    { id: 17, name: "Blossom", color: false },
+    { id: 18, name: "Rotating Storm", color: true },
+    { id: 19, name: "Collision", color: true },
+    { id: 20, name: "Perfect", color: true },
+    { id: 0, name: "Off", color: false },
 ];
 
 export interface LightingOptions {
