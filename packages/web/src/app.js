@@ -139,8 +139,10 @@ function showErrorPanel(title, message) {
     let [text, ...rest] = String(message).split("\n\n");
     let commands = rest.join("\n\n");
     modal((card, close) => {
-        card.appendChild(n("h3", (h) => (h.innerHTML = title)));
-        card.appendChild(n("p", (p) => (p.innerHTML = text)));
+        card.appendChild(n("h3", (h) => (h.textContent = title)));
+        // textContent, not innerHTML: `text` can contain device-provided
+        // strings (e.g. an HID product name) or YAML file contents.
+        card.appendChild(n("p", (p) => (p.textContent = text)));
         if (commands) {
             card.appendChild(
                 n("pre", (pre) => {
@@ -456,6 +458,10 @@ async function refreshKeyboard(connect = false) {
     }
     window.currentKey = null;
     window.deviceState = { keys: {}, mackeys: {} };
+    // Reset edits too: otherwise a failed read below would leave the previous
+    // session's config in place, showing phantom changes and risking a Write
+    // of stale data to the new keyboard.
+    window.config.unmarshall({});
     if (window.keyboardInfo !== null) {
         // Seed the UI with the keyboard's actual state, so what you see is
         // what is on the device, and WRITE diffs are meaningful.
@@ -467,6 +473,10 @@ async function refreshKeyboard(connect = false) {
             }
         } catch (err) {
             console.error("Could not read the current keymap:", err);
+            toast(
+                "Connected, but couldn't read the current keymap.",
+                "warning",
+            );
         }
     }
     render();
@@ -971,6 +981,11 @@ function renderActionBar() {
 
 /** Master render: toggles onboarding vs workspace and repaints dynamic parts. */
 function render() {
+    // Any pending key-capture is tied to the editor being rebuilt here; cancel
+    // it so a late keypress can't land on a different key (or a null one).
+    if (window.captureCleanup) {
+        window.captureCleanup();
+    }
     let connected = window.keyboardInfo !== null;
     g(".onboarding").style.display = connected ? "none" : "flex";
     g(".workspace").style.display = connected ? "block" : "none";
@@ -1026,7 +1041,11 @@ function readEditorInto(
     } else {
         currentRemap.key = incomingID;
         currentRemap.modifiers = [...incomingModifiers];
-        if (modifiersEqual) {
+        // Only omit the field when there are truly no modifiers. Stripping it
+        // whenever it merely equals the defaults dropped the modifiers from
+        // the written keycode and produced phantom "unwritten change" diffs
+        // for keys whose default mapping carries modifiers (e.g. screenshot).
+        if (incomingModifiers.size === 0) {
             delete currentRemap.modifiers;
         }
         remap[id] = currentRemap;
@@ -1128,9 +1147,19 @@ function buildTestArea() {
                 ta.setAttribute("placeholder", "Click here and type…");
                 ta.setAttribute("spellcheck", "false");
                 ta.onkeydown = (ev) => {
-                    readout.innerHTML =
-                        `character <b>${ev.key === " " ? "space" : ev.key}</b>` +
-                        ` · physical position <b>${ev.code || "—"}</b>`;
+                    // Build with textContent: ev.key is arbitrary text.
+                    readout.innerHTML = "";
+                    readout.append(
+                        document.createTextNode("character "),
+                        n(
+                            "b",
+                            (b) =>
+                                (b.textContent =
+                                    ev.key === " " ? "space" : ev.key),
+                        ),
+                        document.createTextNode(" · physical position "),
+                        n("b", (b) => (b.textContent = ev.code || "—")),
+                    );
                 };
             }),
         );
