@@ -21,6 +21,7 @@ import "@fontsource/nunito/500.css";
 import "@fontsource/nunito/800.css";
 import "./app.css";
 
+import { LightingEffect, parseHexColor } from "@nupsi/core";
 import YAML from "yaml";
 import * as bridge from "./bridge.js";
 import keyboards from "./keyboards.js";
@@ -766,11 +767,87 @@ function renderToolbar() {
     toolbar.appendChild(
         n("div", (group) => {
             group.className = "toolbar-group toolbar-actions";
+            group.appendChild(button("Lighting…", openLightingPanel));
             group.appendChild(button("Open…", pickConfigFile));
             group.appendChild(button("Save…", saveConfigFile));
             group.appendChild(button("Backup…", backupConfigFile));
         }),
     );
+}
+
+function openLightingPanel() {
+    if (window.keyboardInfo === null) {
+        toast("Connect a keyboard first.", "warning");
+        return;
+    }
+    let colorInput, effectSelect;
+    let overlay = modal((card, close) => {
+        card.appendChild(n("h3", (h) => (h.textContent = "Backlight")));
+        card.appendChild(
+            n("p", (p) => {
+                p.className = "lighting-note";
+                p.textContent =
+                    "Experimental — reverse-engineered. Sets a solid colour and effect.";
+            }),
+        );
+        card.appendChild(
+            n("div", (row) => {
+                row.className = "lighting-row";
+                row.appendChild(n("label", (l) => (l.textContent = "Colour")));
+                row.appendChild(
+                    n("input", (e) => {
+                        colorInput = e;
+                        e.setAttribute("type", "color");
+                        e.className = "lighting-color";
+                        e.value = "#ff0000";
+                    }),
+                );
+            }),
+        );
+        card.appendChild(
+            n("div", (row) => {
+                row.className = "lighting-row";
+                row.appendChild(n("label", (l) => (l.textContent = "Effect")));
+                row.appendChild(
+                    n("select", (e) => {
+                        effectSelect = e;
+                        e.className = "lighting-effect";
+                        for (let name of Object.keys(LightingEffect)) {
+                            e.appendChild(
+                                n("option", (o) => {
+                                    o.value = name;
+                                    o.textContent = name;
+                                }),
+                            );
+                        }
+                    }),
+                );
+            }),
+        );
+        card.appendChild(
+            n("p", (buttons) => {
+                buttons.className = "modal-buttons";
+                buttons.appendChild(button("Close", close));
+                buttons.appendChild(
+                    button(
+                        "Apply",
+                        async () => {
+                            let { r, g, b } = parseHexColor(colorInput.value);
+                            let effect = LightingEffect[effectSelect.value];
+                            try {
+                                await bridge.setLighting({ r, g, b, effect });
+                                toast("Lighting applied.", "success");
+                            } catch (err) {
+                                showErrorPanel("Lighting failed", err.message);
+                            }
+                        },
+                        "button primary",
+                    ),
+                );
+            }),
+        );
+    });
+    return overlay;
 }
 
 function renderKeyboard() {

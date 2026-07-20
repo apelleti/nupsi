@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import {
+    LightingOptions,
     NuPhyKeyboard,
     PRODUCT_ID,
     RemapEntry,
@@ -104,6 +105,11 @@ export function validateConfig(yamlText: string): void {
 export async function writeConfig(config: unknown): Promise<void> {
     const kb = requireKeyboard();
     await kb.setKeymapFromYaml(YAML.stringify(config), { rawOk: true });
+}
+
+/** Sets a solid RGB backlight colour and effect. Experimental. */
+export async function setLighting(options: LightingOptions): Promise<void> {
+    await requireKeyboard().setLighting(options);
 }
 
 export interface CurrentRemaps {

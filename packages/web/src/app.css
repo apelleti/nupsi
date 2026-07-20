@@ -784,3 +784,43 @@ p {
 .onboarding-credit a {
     color: var(--mint);
 }
+
+/* --- lighting panel --- */
+
+.lighting-note {
+    font-size: 13px;
+    color: var(--gray);
+    margin-bottom: 14px;
+}
+
+.lighting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 10px 0;
+}
+
+.lighting-row label {
+    font-weight: 600;
+}
+
+.lighting-color {
+    width: 56px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+}
+
+.lighting-effect {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--white);
+    background-color: var(--darker-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+}
