@@ -697,3 +697,57 @@ p {
     border-color: var(--orange);
     color: var(--orange);
 }
+
+/* --- keyboard test area --- */
+
+.test-area {
+    margin-top: 20px;
+    padding: 18px 20px;
+    text-align: left;
+}
+
+.test-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.test-label {
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.test-hint {
+    font-size: 13px;
+    color: var(--gray);
+}
+
+.test-input {
+    font-family: inherit;
+    font-size: 15px;
+    width: 100%;
+    resize: vertical;
+    color: var(--white);
+    background-color: var(--darker-bg);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 14px;
+    outline: none;
+}
+
+.test-input:focus {
+    border-color: var(--mint);
+}
+
+.test-readout {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--gray);
+}
+
+.test-readout b {
+    color: var(--mint-light);
+    font-family: monospace;
+}

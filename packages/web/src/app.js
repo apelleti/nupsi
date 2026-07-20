@@ -1094,6 +1094,56 @@ function safetyOff(silent = false) {
     render();
 }
 
+// --- keyboard test area -------------------------------------------------
+
+// A scratch input to physically try out remaps. It shows what the OS
+// actually receives (character + physical position) for the last key, which
+// is the ground truth once a keymap is written to the keyboard.
+function buildTestArea() {
+    let readout;
+    return n("div", (card) => {
+        card.className = "test-area card";
+        card.appendChild(
+            n("div", (headerRow) => {
+                headerRow.className = "test-header";
+                headerRow.appendChild(
+                    n("span", (l) => {
+                        l.className = "test-label";
+                        l.innerHTML = "Try your keyboard";
+                    }),
+                );
+                headerRow.appendChild(
+                    n("span", (hint) => {
+                        hint.className = "test-hint";
+                        hint.innerHTML =
+                            "Type here after writing a remap to check it physically.";
+                    }),
+                );
+            }),
+        );
+        card.appendChild(
+            n("textarea", (ta) => {
+                ta.className = "test-input";
+                ta.setAttribute("rows", "3");
+                ta.setAttribute("placeholder", "Click here and type…");
+                ta.setAttribute("spellcheck", "false");
+                ta.onkeydown = (ev) => {
+                    readout.innerHTML =
+                        `character <b>${ev.key === " " ? "space" : ev.key}</b>` +
+                        ` · physical position <b>${ev.code || "—"}</b>`;
+                };
+            }),
+        );
+        card.appendChild(
+            n("p", (e) => {
+                readout = e;
+                e.className = "test-readout";
+                e.innerHTML = "Last key: —";
+            }),
+        );
+    });
+}
+
 // --- bootstrap ----------------------------------------------------------
 
 function main() {
@@ -1141,6 +1191,7 @@ function main() {
             workspace.appendChild(
                 n("div", (e) => (e.className = "editor-container")),
             );
+            workspace.appendChild(buildTestArea());
         }),
     );
 
