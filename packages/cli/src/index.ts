@@ -181,7 +181,7 @@ const program = new Command("nupsi")
     )
     .option(
         "--effect <name|id>",
-        "Backlight effect for --rgb (solid, reaction, or a numeric id).",
+        "Backlight effect for --rgb (solid, reaction, off, or a numeric id 0-30).",
     );
 
 program.parse();

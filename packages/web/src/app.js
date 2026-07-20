@@ -21,7 +21,7 @@ import "@fontsource/nunito/500.css";
 import "@fontsource/nunito/800.css";
 import "./app.css";
 
-import { LightingEffect, parseHexColor } from "@nupsi/core";
+import { LIGHTING_EFFECTS, parseHexColor } from "@nupsi/core";
 import YAML from "yaml";
 import * as bridge from "./bridge.js";
 import keyboards from "./keyboards.js";
@@ -812,11 +812,11 @@ function openLightingPanel() {
                     n("select", (e) => {
                         effectSelect = e;
                         e.className = "lighting-effect";
-                        for (let name of Object.keys(LightingEffect)) {
+                        for (let fx of LIGHTING_EFFECTS) {
                             e.appendChild(
                                 n("option", (o) => {
-                                    o.value = name;
-                                    o.textContent = name;
+                                    o.value = String(fx.id);
+                                    o.textContent = fx.name;
                                 }),
                             );
                         }
@@ -833,7 +833,7 @@ function openLightingPanel() {
                         "Apply",
                         async () => {
                             let { r, g, b } = parseHexColor(colorInput.value);
-                            let effect = LightingEffect[effectSelect.value];
+                            let effect = Number(effectSelect.value);
                             try {
                                 await bridge.setLighting({ r, g, b, effect });
                                 toast("Lighting applied.", "success");

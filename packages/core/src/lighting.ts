@@ -43,7 +43,38 @@ export const EFFECT_OFFSET = 144;
 export const LightingEffect = {
     solid: 0x01,
     reaction: 0x0c,
+    off: 0x00,
 } as const;
+
+/**
+ * The full hardware effect catalog, in the official app's UI (slot) order,
+ * from Cfg.ini `LedOptN`. `id` is the value written to config[144]. Names are
+ * confirmed only for solid/reaction/off; the rest are placeholders by slot,
+ * pending identification against the official app's labels.
+ */
+export const LIGHTING_EFFECTS: readonly { id: number; name: string }[] = [
+    { id: 1, name: "Solid" },
+    { id: 3, name: "Effect 2" },
+    { id: 2, name: "Effect 3" },
+    { id: 19, name: "Effect 4" },
+    { id: 15, name: "Effect 5" },
+    { id: 13, name: "Effect 6" },
+    { id: 20, name: "Effect 7" },
+    { id: 16, name: "Effect 8" },
+    { id: 18, name: "Effect 9" },
+    { id: 5, name: "Effect 10" },
+    { id: 7, name: "Effect 11" },
+    { id: 17, name: "Effect 12" },
+    { id: 12, name: "Reaction" },
+    { id: 8, name: "Effect 14" },
+    { id: 28, name: "Effect 15" },
+    { id: 30, name: "Effect 16" },
+    { id: 14, name: "Effect 17" },
+    { id: 29, name: "Effect 18" },
+    { id: 27, name: "Effect 19" },
+    { id: 26, name: "Effect 20" },
+    { id: 0, name: "Off" },
+];
 
 export interface LightingOptions {
     r: number;
