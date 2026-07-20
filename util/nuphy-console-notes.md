@@ -64,7 +64,44 @@ buffer is one of the things a capture will pin down.)
   version 2 (more involved: storage, timing, mouse keys). Deferred.
 - The app exposes Profile1/2/3; how they map to on-keyboard storage is TBD.
 
-## Still missing: the HID feature-report wire format
+## Lighting wire format — recovered by USB capture (usbmon, full data)
+
+Captured the official app under Wine changing solid colors while the physical
+LEDs changed. Each "Apply" sends this sequence of **control SET_REPORT
+(bmRequestType 0x21, bRequest 0x09) feature writes to interface 1**:
+
+1. `05 83 b6 00 00 00`  — handshake (feature report id 0x05; same as keymap path)
+2. `05 88 b8 00 00 00`  — handshake
+3. `06 08 b8 00 40 00 00 00 …`  — **colour frame** (feature report id 0x06, 1032 bytes)
+4. `06 03 b6 00 …`      — config (feature report id 0x06, 1032 bytes)
+
+**The RGB colour is a plain R,G,B triplet at byte offset 533 of the `08 b8`
+frame** (diffing solid red/green/blue changed only those 3 bytes):
+
+| colour | frame[533..535] |
+| ------ | --------------- |
+| red    | `ff 00 00`      |
+| green  | `00 ff 00`      |
+| blue   | `00 00 ff`      |
+
+The rest of the 1032-byte frame is fixed for a given effect, so "set solid
+colour" = replay a captured frame with bytes 533-535 patched. The `03 b6`
+config also changes at bytes ~144 and ~162 (brightness / effect id,
+respectively — not yet isolated cleanly; the app's periodic re-sends add
+noise). No interrupt/bulk OUT transfers are involved — everything is control
+feature reports, exactly like the keymap.
+
+Reference frame/config byte templates live in the capture at
+`/tmp/nuphy-full.txt` (not committed).
+
+## Still to isolate
+
+- Brightness and effect-id bytes in the `03 b6` config (needs a controlled
+  capture changing one at a time, with long pauses to avoid heartbeat noise).
+- Per-key custom colours (the app's per-key mode, if used) vs the single
+  global colour at frame[533].
+
+## Original missing piece (now largely found for basic RGB)
 
 The config gives the *semantics* (effect ids, indices, ranges); the *wire
 format* (report id + byte layout that packs effect/speed/brightness/color into
