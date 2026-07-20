@@ -20,6 +20,7 @@ export * from "./descriptors.js";
 export * from "./device.js";
 export * from "./errors.js";
 export * from "./hexdump.js";
+export * from "./lighting.js";
 export * from "./protocol.js";
 export * from "./remapDecode.js";
 export * from "./transport.js";

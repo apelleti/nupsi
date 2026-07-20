@@ -23,6 +23,7 @@ import {
     buildSetKeymapReport,
     parseKeymapReport,
 } from "./protocol.js";
+import { LightingOptions, buildLightingReports } from "./lighting.js";
 import { HidChannels, DiscoveredKeyboard } from "./transport.js";
 import { buildKeymapsFromYaml, ValidateOptions } from "./yamlConfig.js";
 
@@ -131,5 +132,25 @@ export class NuPhyKeyboard {
     async resetKeymap(): Promise<void> {
         await this.setKeymap(this.descriptor.defaultKeymap.win, "win");
         await this.setKeymap(this.descriptor.defaultKeymap.mac, "mac");
+    }
+
+    /**
+     * Sets a solid RGB colour and effect, replaying the reverse-engineered
+     * NuPhy Console lighting sequence: two handshakes on the request channel,
+     * then the frame and config feature reports on the data channel.
+     * Experimental — see util/nuphy-console-notes.md.
+     */
+    async setLighting(options: LightingOptions): Promise<void> {
+        const reports = buildLightingReports(options);
+        await this.withChannels(async (channels) => {
+            for (const handshake of reports.handshakes) {
+                await channels.sendRequestReport(handshake);
+                await delay(30);
+            }
+            await channels.sendDataReport(reports.frame);
+            await delay(30);
+            await channels.sendDataReport(reports.config);
+            await delay(150);
+        });
     }
 }

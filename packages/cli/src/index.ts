@@ -17,7 +17,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import {
+    LightingEffect,
     NuPhyKeyboard,
+    parseHexColor,
     parseKeymapWords,
     prettyPrintBinary,
     serializeKeymapWords,
@@ -65,6 +67,8 @@ interface CliOptions {
     dumpKeys?: string;
     dumpHexTo?: string;
     loadKeys?: string;
+    rgb?: string;
+    effect?: string;
     version?: boolean;
 }
 
@@ -117,9 +121,33 @@ async function run(options: CliOptions): Promise<void> {
                 mode === "mac" ? "Mac" : "Windows"
             } mode.`,
         );
+    } else if (options.rgb !== undefined) {
+        const keyboard = await getKeyboard();
+        const { r, g, b } = parseHexColor(options.rgb);
+        const effect =
+            options.effect !== undefined
+                ? parseEffect(options.effect)
+                : LightingEffect.solid;
+        await keyboard.setLighting({ r, g, b, effect });
+        console.log(
+            `Set lighting to #${options.rgb.replace("#", "")} (effect ${effect}).`,
+        );
     } else {
         program.help();
     }
+}
+
+function parseEffect(value: string): number {
+    if (value in LightingEffect) {
+        return LightingEffect[value as keyof typeof LightingEffect];
+    }
+    const n = Number(value);
+    if (!Number.isInteger(n) || n < 0 || n > 255) {
+        throw new Error(
+            `Invalid effect '${value}': use a name (${Object.keys(LightingEffect).join(", ")}) or an id 0-255.`,
+        );
+    }
+    return n;
 }
 
 const program = new Command("nupsi")
@@ -146,7 +174,15 @@ const program = new Command("nupsi")
         "-H, --dump-hex-to <file>",
         "When the keymap is dumped to a binary file, also dump the keymap in a hex format to a text file.",
     )
-    .option("-L, --load-keys <file>", "Load the keymap from a binary file.");
+    .option("-L, --load-keys <file>", "Load the keymap from a binary file.")
+    .option(
+        "--rgb <rrggbb>",
+        "Set a solid backlight colour (hex, e.g. ff0000). Experimental.",
+    )
+    .option(
+        "--effect <name|id>",
+        "Backlight effect for --rgb (solid, reaction, or a numeric id).",
+    );
 
 program.parse();
 
