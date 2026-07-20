@@ -94,10 +94,28 @@ feature reports, exactly like the keymap.
 Reference frame/config byte templates live in the capture at
 `/tmp/nuphy-full.txt` (not committed).
 
-**Effect id is byte 144 of the `03 b6` config**, and it matches the
-`LedOptN` effect_id catalog from Cfg.ini: Static/Solid = `0x01` (LedOpt1),
-Reaction = `0x0c` = 12 (LedOpt13). So the full effect list is known from the
-config file and selected via this one byte.
+**Effect id is byte 144 of the `03 b6` config.** Confirmed by capture:
+Static = `0x01`, Reaction = `0x0c` (12). The effect **names** come from the
+official app's own strings — `<tc_kb_led<id>>` in each `text.xml` (Japanese
+only in this installer), where the tag index equals the effect id (led1 =
+Static = id 1, led12 = Reaction = id 12, matching the captures). Translated:
+
+| id | name           | id | name            |
+| -- | -------------- | -- | --------------- |
+| 1  | Static         | 11 | Neon Stream     |
+| 2  | Breathing      | 12 | Reaction        |
+| 3  | Rainbow Wheel  | 13 | Sine Wave       |
+| 4  | Flash Away     | 14 | Scan            |
+| 5  | Raindrops      | 15 | Rotary Windmill |
+| 6  | Rainbow Roulette | 16 | Colorful Fall |
+| 7  | Ripple Shining | 17 | Blossom         |
+| 8  | Twinkling Stars | 18 | Rotating Storm |
+| 9  | Shadow Disappear | 19 | Collision     |
+| 10 | Retro Snake    | 20 | Perfect         |
+
+(id 0 = Off, best guess; the app also lists Game Mode. The `LedOptN` table in
+Cfg.ini gives each effect's UI slot order and capability flags — which have a
+speed/direction/colour control.)
 
 Confirmed there are **no vendor control requests and no interrupt/bulk OUT**
 to the keyboard — a full-capture pass (all control transfer types) showed the
