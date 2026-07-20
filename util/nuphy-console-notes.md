@@ -94,11 +94,22 @@ feature reports, exactly like the keymap.
 Reference frame/config byte templates live in the capture at
 `/tmp/nuphy-full.txt` (not committed).
 
+**Effect id is byte 144 of the `03 b6` config**, and it matches the
+`LedOptN` effect_id catalog from Cfg.ini: Static/Solid = `0x01` (LedOpt1),
+Reaction = `0x0c` = 12 (LedOpt13). So the full effect list is known from the
+config file and selected via this one byte.
+
+Confirmed there are **no vendor control requests and no interrupt/bulk OUT**
+to the keyboard — a full-capture pass (all control transfer types) showed the
+keyboard only ever receives SET_REPORT feature writes; the other control
+traffic seen was USB hub/other-device housekeeping.
+
 ## Still to isolate
 
-- Brightness and effect-id bytes in the `03 b6` config (needs a controlled
-  capture changing one at a time, with long pauses to avoid heartbeat noise).
-- Per-key custom colours (the app's per-key mode, if used) vs the single
+- **Brightness**: not reliably reproduced in the capture (config byte 162
+  wiggles but looks like a sequence/toggle bit; min/max produced no stable
+  distinct byte — possibly a Wine limitation on that specific control).
+- Speed (for animated effects), and per-key custom colours vs the single
   global colour at frame[533].
 
 ## Original missing piece (now largely found for basic RGB)
