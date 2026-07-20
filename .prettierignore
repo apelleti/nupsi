@@ -1,0 +1,11 @@
+node_modules/
+**/node_modules/
+**/dist/
+pnpm-lock.yaml
+# Generated from res/ by scripts/gen-data.mjs
+packages/core/src/data/
+# Vendored data (source of truth, shared format with upstream)
+res/
+util/
+example.yml
+**/*.md

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - "*"
+    pull_request:
+
+jobs:
+    build:
+        name: Lint, test & build
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: "22"
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Check generated data is in sync with res/
+              run: |
+                  pnpm gen
+                  git diff --exit-code packages/core/src/data
+            - name: Build
+              run: pnpm build && pnpm --filter @nudelta/web build
+            - name: Lint
+              run: pnpm lint
+            - name: Test
+              run: pnpm test

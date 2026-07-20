@@ -1,0 +1,25 @@
+keys:
+  capslock: esc
+  lalt: lmeta
+  lmeta: lalt
+  ralt: rmeta
+  screenshot:
+    key: s
+    modifiers: [meta, shift]
+  assistant: f14 # f13 opens settings in gnome
+  missioncontrol:
+    key: enter
+    modifiers: [ctrl, shift]
+  launchpad:
+    key: l
+    modifiers: [ctrl, shift]
+mackeys:
+  screenshot:
+    key: s
+    modifiers: [meta, shift]
+  assistant: fnspace
+
+  # unintuitively, f5 and f6 are overridden by the keyboard in mac mode
+  # for backlight controls
+  f5: f5
+  f6: f6

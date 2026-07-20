@@ -1,0 +1,471 @@
+/*
+    Nudelta Console
+    Copyright (C) 2022 Mohamed Gaber
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+body {
+    --mint-ul: #f3fbfa;
+    --mint-light: #8ed8d0;
+    --mint: #55d4b9;
+    --orange: #ff6832;
+    --yellow: #febe00;
+    --white: #ffffff;
+    --gray: #838a8c;
+    --dark: #333333;
+
+    --darker-bg: #161619;
+    --dark-bg: #222222;
+
+    padding: 0;
+    margin: 0;
+    background-color: var(--darker-bg);
+    width: 100%;
+    color: white;
+    font-family: "Nunito";
+}
+
+.app {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.app > p {
+    padding: 0px 0px 0px 0px;
+    margin-block-start: 0;
+    margin-block-end: 10px;
+}
+
+.app h1 {
+    display: inline-block;
+    width: 64px;
+    font-size: 32pt;
+    background-image: linear-gradient(135deg, var(--mint), var(--mint-ul));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-block-end: 0;
+}
+
+.keyboard-container {
+    display: inline-block;
+    width: 1000px;
+    height: auto;
+    padding: 10px;
+}
+
+.card {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+    grid-auto-flow: column;
+    background-color: var(--dark-bg);
+    border-radius: 12.5px;
+    padding: 10px;
+    gap: 3.5px;
+}
+
+.key {
+    box-sizing: border-box;
+    border-radius: 12.5px;
+    display: flex;
+    justify-content: center;
+    padding-top: 1.5em;
+    padding-bottom: 1.5em;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    color: transparent;
+    user-select: none;
+}
+
+.key.altlabel {
+    justify-content: normal;
+    padding-top: 0.75em;
+    padding-bottom: 0.75em;
+}
+
+.keyboard {
+    font-size: 10pt;
+    font-weight: bold;
+    gap: 5px;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.keyboard > .key {
+    box-shadow: 0 0 2px 1px gray !important;
+    height: 55px;
+}
+
+.keyboard > .key > span {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.keyboard > .key:hover {
+    box-shadow: inset 0 0 0 3px blue !important;
+    cursor: pointer;
+}
+
+.keyboard > .key.modified {
+    box-shadow: inset 0 0 2px 1px gold !important;
+}
+
+.option-container {
+    display: inline-block;
+}
+
+.option-matrix {
+    font-size: 12pt;
+    width: 800px;
+}
+
+.option-matrix > .key {
+    color: white;
+    background-color: var(--gray);
+    transition: background-color 0.4s ease;
+}
+
+.key * {
+    pointer-events: none;
+}
+
+.option-matrix > .key.selected {
+    background-color: var(--mint);
+}
+
+.option-matrix > .key:hover {
+    background-color: var(--mint-light);
+    cursor: pointer;
+}
+
+.option-matrix > .key > span {
+    display: block;
+}
+
+.option-matrix > select {
+    text-align: center;
+    font-size: 12pt;
+    font-family: monospace;
+}
+
+.keyboard-field {
+    display: flex;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.write-key {
+    background-color: var(--gray);
+    cursor: not-allowed;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.write-key.active {
+    background-color: var(--mint);
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.write-key.active:hover {
+    background-color: var(--mint-light);
+}
+
+.toolbar {
+    margin-bottom: 10px;
+}
+
+.toolbar-button {
+    font-family: "Nunito";
+    font-size: 1em;
+    color: var(--white);
+    background-color: var(--dark-bg);
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 6px 14px;
+    margin: 0 4px;
+    cursor: pointer;
+}
+
+.toolbar-button:hover {
+    background-color: var(--mint);
+    color: var(--dark);
+}
+
+.keyboard > .key {
+    position: relative;
+}
+
+.remap-badge {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    font-size: 9px;
+    line-height: 1.2;
+    color: var(--mint);
+    background-color: var(--darker-bg);
+    border-radius: 4px;
+    padding: 1px 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.sync-status {
+    font-size: 0.8em;
+    color: var(--gray);
+}
+
+.sync-status.dirty {
+    color: var(--yellow);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-card {
+    background-color: var(--dark-bg);
+    border-radius: 12.5px;
+    padding: 20px 30px;
+    max-width: 480px;
+    max-height: 70vh;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.modal-list li {
+    padding: 3px 0;
+    font-size: 0.9em;
+}
+
+.modal-list li.diff-reset {
+    color: var(--orange);
+}
+
+.diff-mode {
+    display: inline-block;
+    width: 3em;
+    color: var(--gray);
+    font-size: 0.85em;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.toolbar-button.write-confirm {
+    background-color: var(--mint);
+    color: var(--dark);
+    border-color: var(--mint);
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 200;
+    pointer-events: none;
+}
+
+.toast {
+    background-color: var(--dark-bg);
+    color: var(--white);
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 10px 18px;
+    max-width: 500px;
+    font-size: 0.9em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.toast.success {
+    border-color: var(--mint);
+    color: var(--mint);
+}
+
+.toast.warning {
+    border-color: var(--yellow);
+    color: var(--yellow);
+}
+
+.toast.error {
+    border-color: var(--orange);
+    color: var(--orange);
+}
+
+.switcher-label {
+    color: var(--gray);
+    margin: 0 10px;
+    vertical-align: middle;
+    user-select: none;
+}
+
+.switcher-label.active {
+    color: var(--white);
+}
+
+.switcher-note {
+    font-size: 0.75em;
+    color: var(--gray);
+    margin-top: 6px;
+}
+
+.capture-button {
+    align-self: center;
+    margin-left: 6px;
+    font-size: 1.1em;
+    padding: 4px 10px;
+}
+
+.capture-button.listening {
+    background-color: var(--yellow);
+    color: var(--dark);
+    border-color: var(--yellow);
+}
+
+.command-block {
+    background-color: var(--darker-bg);
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.8em;
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: all;
+}
+
+.keycode-picker-button {
+    font-family: "Nunito";
+    font-size: 1em;
+    color: var(--white);
+    background-color: var(--darker-bg);
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 4px 12px;
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.keycode-picker-button:hover {
+    border-color: var(--mint);
+}
+
+.picker-card {
+    width: 480px;
+}
+
+.picker-search {
+    font-family: "Nunito";
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+    color: var(--white);
+    background-color: var(--darker-bg);
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 8px 12px;
+    outline: none;
+}
+
+.picker-search:focus {
+    border-color: var(--mint);
+}
+
+.picker-groups {
+    margin-top: 10px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.picker-groups h4 {
+    color: var(--gray);
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.08em;
+    margin: 12px 0 6px 0;
+}
+
+.picker-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.picker-item {
+    font-family: "Nunito";
+    font-size: 0.85em;
+    color: var(--white);
+    background-color: var(--darker-bg);
+    border: 1px solid var(--gray);
+    border-radius: 6px;
+    padding: 3px 9px;
+    cursor: pointer;
+}
+
+.picker-item:hover {
+    background-color: var(--mint);
+    color: var(--dark);
+    border-color: var(--mint);
+}
+
+.picker-item.current {
+    border-color: var(--mint);
+    color: var(--mint);
+}
+
+.picker-item.current:hover {
+    color: var(--dark);
+}
+
+.picker-empty {
+    color: var(--gray);
+    margin-top: 12px;
+}

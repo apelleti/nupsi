@@ -1,0 +1,33 @@
+{
+    "name": "nudelta-ts",
+    "private": true,
+    "version": "0.10.0",
+    "license": "GPL-3.0-or-later",
+    "type": "module",
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "gen": "node scripts/gen-data.mjs",
+        "build": "pnpm -r --filter '!@nudelta/web' build",
+        "test": "vitest run",
+        "lint": "prettier --check . && pnpm -r --filter '!@nudelta/web' exec tsc --noEmit",
+        "format": "prettier --write ."
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "node-hid"
+        ]
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.0",
+        "prettier": "^3.6.2",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.4",
+        "yaml": "^2.8.0"
+    },
+    "prettier": {
+        "tabWidth": 4,
+        "quoteProps": "consistent"
+    }
+}

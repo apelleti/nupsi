@@ -1,0 +1,21 @@
+{
+    "name": "@nudelta/core",
+    "version": "0.10.0",
+    "description": "Protocol and keymap logic for NuPhy Air75/Air60/Halo75 V1 keyboards",
+    "license": "GPL-3.0-or-later",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json"
+    },
+    "dependencies": {
+        "yaml": "^2.8.0"
+    }
+}

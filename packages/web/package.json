@@ -1,0 +1,22 @@
+{
+    "name": "@nudelta/web",
+    "version": "0.10.0",
+    "description": "WebHID front-end for NuPhy Air75/Air60/Halo75 V1 keyboards",
+    "license": "GPL-3.0-or-later",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@fontsource/nunito": "^5.2.5",
+        "@nudelta/core": "workspace:*",
+        "yaml": "^2.8.0"
+    },
+    "devDependencies": {
+        "@types/w3c-web-hid": "^1.0.6",
+        "vite": "^6.3.5"
+    }
+}
