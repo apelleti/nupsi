@@ -21,7 +21,7 @@ import {
     parseKeymapWords,
     prettyPrintBinary,
     serializeKeymapWords,
-} from "@nudelta/core";
+} from "@nupsi/core";
 import { Command } from "commander";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -45,7 +45,7 @@ async function getKeyboard(verify = true): Promise<NuPhyKeyboard> {
 }
 
 function printVersion() {
-    console.log(`Nudelta Utility v${version}`);
+    console.log(`Nupsi v${version}`);
     console.log("Copyright (c) Mohamed Gaber 2022");
     console.log(`
 Licensed under the GNU General Public License, version 3, or at your option,
@@ -122,7 +122,7 @@ async function run(options: CliOptions): Promise<void> {
     }
 }
 
-const program = new Command("nudelta")
+const program = new Command("nupsi")
     .description(
         "An open-source alternative to the NuPhy Console (Air75/Air60/Halo75 V1)",
     )

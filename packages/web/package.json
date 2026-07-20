@@ -1,5 +1,5 @@
 {
-    "name": "@nudelta/web",
+    "name": "@nupsi/web",
     "version": "0.10.0",
     "description": "WebHID front-end for NuPhy Air75/Air60/Halo75 V1 keyboards",
     "license": "GPL-3.0-or-later",
@@ -12,7 +12,7 @@
     },
     "dependencies": {
         "@fontsource/nunito": "^5.2.5",
-        "@nudelta/core": "workspace:*",
+        "@nupsi/core": "workspace:*",
         "yaml": "^2.8.0"
     },
     "devDependencies": {

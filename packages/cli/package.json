@@ -1,11 +1,11 @@
 {
-    "name": "@nudelta/cli",
+    "name": "@nupsi/cli",
     "version": "0.10.0",
     "description": "CLI for NuPhy Air75/Air60/Halo75 V1 keyboards",
     "license": "GPL-3.0-or-later",
     "type": "module",
     "bin": {
-        "nudelta": "./dist/index.js"
+        "nupsi": "./dist/index.js"
     },
     "files": [
         "dist"
@@ -14,7 +14,7 @@
         "build": "tsc -p tsconfig.json"
     },
     "dependencies": {
-        "@nudelta/core": "workspace:*",
+        "@nupsi/core": "workspace:*",
         "commander": "^12.1.0",
         "node-hid": "^3.1.2"
     }

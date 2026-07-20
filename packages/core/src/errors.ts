@@ -41,14 +41,14 @@ export function hidAccessFailureMessage(
 ): string {
     switch (platform) {
         case "darwin":
-            return "Failed to read or write to your keyboard- please grant Nudelta Input Monitoring permissions in your System Preferences then restart Nudelta.";
+            return "Failed to read or write to your keyboard- please grant Nupsi Input Monitoring permissions in your System Preferences then restart Nupsi.";
         case "linux":
             return (
                 "Failed to read or write to your keyboard- try running these commands then restarting your computer: \n\n" +
-                'echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"\' | sudo tee /etc/udev/rules.d/70-nudelta.rules && ' +
+                'echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"\' | sudo tee /etc/udev/rules.d/70-nupsi.rules && ' +
                 "sudo udevadm control --reload-rules && sudo udevadm trigger"
             );
         default:
-            return "Unable to read HID devices. Consider running Nudelta as a superuser or checking your operating system's HID access permissions.";
+            return "Unable to read HID devices. Consider running Nupsi as a superuser or checking your operating system's HID access permissions.";
     }
 }

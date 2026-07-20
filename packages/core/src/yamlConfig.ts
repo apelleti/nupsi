@@ -140,7 +140,7 @@ export function validateYamlKeymap(
         if (remap.raw !== undefined) {
             if (!rawOk) {
                 throw new ConfigError(
-                    `Invalid config in ${topLevelKey}.${keyID}: raw configurations are not supported by the Nudelta GUI.`,
+                    `Invalid config in ${topLevelKey}.${keyID}: raw configurations are not supported by the Nupsi GUI.`,
                 );
             }
             continue;

@@ -23,7 +23,7 @@ import {
     UnsupportedKeyboardError,
     hidAccessFailureMessage,
     matchDescriptor,
-} from "@nudelta/core";
+} from "@nupsi/core";
 
 function accessError(): PermissionsError {
     const platform = /Linux/.test(navigator.userAgent) ? "linux" : "web";

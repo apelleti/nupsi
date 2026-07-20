@@ -1,5 +1,5 @@
 {
-    "name": "nudelta-ts",
+    "name": "nupsi",
     "private": true,
     "version": "0.10.0",
     "license": "GPL-3.0-or-later",
@@ -9,9 +9,9 @@
     ],
     "scripts": {
         "gen": "node scripts/gen-data.mjs",
-        "build": "pnpm -r --filter '!@nudelta/web' build",
+        "build": "pnpm -r --filter '!@nupsi/web' build",
         "test": "vitest run",
-        "lint": "prettier --check . && pnpm -r --filter '!@nudelta/web' exec tsc --noEmit",
+        "lint": "prettier --check . && pnpm -r --filter '!@nupsi/web' exec tsc --noEmit",
         "format": "prettier --write ."
     },
     "pnpm": {

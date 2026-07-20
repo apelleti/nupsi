@@ -757,3 +757,30 @@ p {
     color: var(--yellow);
     border-color: var(--yellow);
 }
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.github-link {
+    color: var(--gray);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.github-link:hover {
+    color: var(--mint);
+}
+
+.onboarding-credit {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--gray);
+}
+
+.onboarding-credit a {
+    color: var(--mint);
+}

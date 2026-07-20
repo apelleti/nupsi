@@ -27,7 +27,7 @@ import {
     VENDOR_ID,
     hidAccessFailureMessage,
     matchDescriptor,
-} from "@nudelta/core";
+} from "@nupsi/core";
 import { HIDAsync, devicesAsync, type Device } from "node-hid";
 
 // On Windows, the keyboard exposes one HID path per "collection"; keymap

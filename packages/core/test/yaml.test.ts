@@ -80,7 +80,7 @@ describe("raw entries", () => {
                 "win",
                 { rawOk: false },
             ),
-        ).toThrow(/raw configurations are not supported by the Nudelta GUI/);
+        ).toThrow(/raw configurations are not supported by the Nupsi GUI/);
     });
 
     it("rejects out-of-range raw values", () => {

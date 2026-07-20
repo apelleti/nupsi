@@ -170,7 +170,7 @@ function showErrorPanel(title, message) {
 
 // --- keycode picker -----------------------------------------------------
 
-// KeyboardEvent.code -> nudelta keycode name, for "press a key" capture.
+// KeyboardEvent.code -> internal keycode name, for "press a key" capture.
 const CAPTURE_CODE_MAP = (() => {
     let map = {
         Escape: "esc",
@@ -607,7 +607,7 @@ function downloadYaml(filename, object) {
 }
 
 function saveConfigFile() {
-    downloadYaml("nudelta.yml", window.config.marshall());
+    downloadYaml("nupsi.yml", window.config.marshall());
 }
 
 async function backupConfigFile() {
@@ -708,6 +708,27 @@ function renderOnboarding() {
                     }),
                 );
             }
+            card.appendChild(
+                n("p", (p) => {
+                    p.className = "onboarding-credit";
+                    p.appendChild(
+                        document.createTextNode(
+                            "Nupsi is an open-source port of ",
+                        ),
+                    );
+                    p.appendChild(
+                        n("a", (a) => {
+                            a.href = "https://github.com/donn/nudelta";
+                            a.target = "_blank";
+                            a.rel = "noopener noreferrer";
+                            a.textContent = "nudelta";
+                        }),
+                    );
+                    p.appendChild(
+                        document.createTextNode(" by Mohamed Gaber."),
+                    );
+                }),
+            );
         }),
     );
 }
@@ -1222,13 +1243,29 @@ function main() {
                     brand.appendChild(
                         n("span", (title) => {
                             title.className = "brand-title";
-                            title.innerHTML = "Nuphy Console";
+                            title.innerHTML = "Nupsi";
                         }),
                     );
                 }),
             );
             header.appendChild(
-                n("div", (pill) => (pill.className = "status-pill")),
+                n("div", (right) => {
+                    right.className = "header-right";
+                    right.appendChild(
+                        n("a", (link) => {
+                            link.className = "github-link";
+                            link.href =
+                                "https://github.com/apelleti/nyphy-console";
+                            link.target = "_blank";
+                            link.rel = "noopener noreferrer";
+                            link.title = "View the source on GitHub";
+                            link.textContent = "GitHub";
+                        }),
+                    );
+                    right.appendChild(
+                        n("div", (pill) => (pill.className = "status-pill")),
+                    );
+                }),
             );
         }),
     );

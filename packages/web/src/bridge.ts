@@ -24,7 +24,7 @@ import {
     VENDOR_ID,
     remapsFromKeymap,
     validateYamlKeymap,
-} from "@nudelta/core";
+} from "@nupsi/core";
 import YAML from "yaml";
 import {
     isVendorCollection,
