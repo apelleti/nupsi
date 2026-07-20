@@ -76,28 +76,6 @@ window.busy = false;
 window.config = new Config();
 // Snapshot of the keyboard's on-device state, to compute what a WRITE changes.
 window.deviceState = { keys: {}, mackeys: {} };
-window.layout = localStorage.getItem("nudelta-layout") || "qwerty";
-
-// --- keyboard layout labelling (QWERTY positions vs typed characters) ---
-
-// Keycodes are QWERTY-position HID scancodes; the OS applies its own layout.
-// On a French AZERTY OS layout these positions type different characters, so
-// we relabel them for display only — the written scancode is unchanged.
-const AZERTY_LABELS = {
-    q: "a",
-    a: "q",
-    w: "z",
-    z: "w",
-    semicolon: "m",
-    m: ",",
-};
-
-function layoutLabel(name) {
-    if (window.layout === "azerty" && name in AZERTY_LABELS) {
-        return AZERTY_LABELS[name];
-    }
-    return name;
-}
 
 function modifierLabel(modifierID) {
     let modifier = modifiers[modifierID];
@@ -276,7 +254,7 @@ function groupKeycodes(keycodes) {
 
 function setPickerValue(pickerButton, name) {
     pickerButton.setAttribute("data-value", name);
-    pickerButton.innerHTML = layoutLabel(name);
+    pickerButton.innerHTML = name;
 }
 
 function openKeycodePicker(alt) {
@@ -300,10 +278,8 @@ function openKeycodePicker(alt) {
         groupsContainer.innerHTML = "";
         let needle = filter.trim().toLowerCase();
         for (let group of groupKeycodes(keycodes)) {
-            let names = group.names.filter(
-                (name) =>
-                    name.toLowerCase().includes(needle) ||
-                    layoutLabel(name).toLowerCase().includes(needle),
+            let names = group.names.filter((name) =>
+                name.toLowerCase().includes(needle),
             );
             if (names.length === 0) {
                 continue;
@@ -322,7 +298,7 @@ function openKeycodePicker(alt) {
                                         ? "picker-item current"
                                         : "picker-item";
                                 item.setAttribute("data-value", name);
-                                item.innerHTML = layoutLabel(name);
+                                item.innerHTML = name;
                                 item.onclick = () => pick(name);
                             }),
                         );
@@ -342,15 +318,6 @@ function openKeycodePicker(alt) {
 
     overlay = modal((card) => {
         card.classList.add("picker-card");
-        if (window.layout === "azerty") {
-            card.appendChild(
-                n("p", (p) => {
-                    p.className = "picker-hint";
-                    p.innerHTML =
-                        "AZERTY: labels show the character your keyboard types.";
-                }),
-            );
-        }
         card.appendChild(
             n("input", (input) => {
                 input.className = "picker-search";
@@ -413,7 +380,7 @@ function startKeyCapture(alt, captureButton) {
         }
         setPickerValue(selector, name);
         updateKeymap();
-        toast(`Captured “${layoutLabel(name)}”.`, "success", 2000);
+        toast(`Captured “${name}”.`, "success", 2000);
     };
     window.captureCleanup = cleanup;
     document.addEventListener("keydown", handler, true);
@@ -427,13 +394,13 @@ function formatRemapEntry(entry) {
         return "default";
     }
     if (typeof entry === "string") {
-        return layoutLabel(entry);
+        return entry;
     }
     if (entry.raw !== undefined && entry.raw !== null) {
         return `0x${entry.raw.toString(16).padStart(8, "0")}`;
     }
     let mods = (entry.modifiers ?? []).map(modifierLabel).join("");
-    return `${mods}${layoutLabel(entry.key ?? "")}`;
+    return `${mods}${entry.key ?? ""}`;
 }
 
 function normalizeRemapEntry(entry) {
@@ -764,34 +731,6 @@ function renderToolbar() {
 
     toolbar.appendChild(
         n("div", (group) => {
-            group.className = "toolbar-group";
-            group.appendChild(
-                n("span", (l) => {
-                    l.className = "toolbar-label";
-                    l.innerHTML = "Layout";
-                    l.title =
-                        "How keycodes are labelled. Pick AZERTY if your OS uses a French layout.";
-                }),
-            );
-            group.appendChild(
-                segmented(
-                    [
-                        ["qwerty", "QWERTY"],
-                        ["azerty", "AZERTY"],
-                    ],
-                    window.layout,
-                    (value) => {
-                        window.layout = value;
-                        localStorage.setItem("nudelta-layout", value);
-                        render();
-                    },
-                ),
-            );
-        }),
-    );
-
-    toolbar.appendChild(
-        n("div", (group) => {
             group.className = "toolbar-group toolbar-actions";
             group.appendChild(button("Open…", pickConfigFile));
             group.appendChild(button("Save…", saveConfigFile));
@@ -917,7 +856,7 @@ function renderKeyEditor(container, key, alt) {
                         : "keycode-selector";
                     pickerButton.className = "keycode-picker-button";
                     pickerButton.setAttribute("data-value", value);
-                    pickerButton.innerHTML = layoutLabel(value);
+                    pickerButton.innerHTML = value;
                     pickerButton.title = "Choose a keycode";
                     pickerButton.onclick = () => openKeycodePicker(alt);
                 }),

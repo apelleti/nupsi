@@ -590,12 +590,6 @@ p {
     width: 520px;
 }
 
-.picker-hint {
-    font-size: 13px;
-    color: var(--mint-light);
-    margin-bottom: 10px;
-}
-
 .picker-search {
     font-family: inherit;
     font-size: 15px;
