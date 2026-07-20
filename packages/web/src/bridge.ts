@@ -88,11 +88,14 @@ function requireKeyboard(): NuPhyKeyboard {
     return keyboard;
 }
 
-/** Validates a profile file against the connected keyboard (GUI rules). */
+/** Validates a profile file against the connected keyboard.
+ *  rawOk: the web UI now renders and preserves raw entries, and a backup of
+ *  the device can legitimately contain them, so loading a file must accept
+ *  raw — matching writeConfig. */
 export function validateConfig(yamlText: string): void {
     const kb = requireKeyboard();
-    validateYamlKeymap(kb.descriptor, yamlText, "win", { rawOk: false });
-    validateYamlKeymap(kb.descriptor, yamlText, "mac", { rawOk: false });
+    validateYamlKeymap(kb.descriptor, yamlText, "win", { rawOk: true });
+    validateYamlKeymap(kb.descriptor, yamlText, "mac", { rawOk: true });
 }
 
 /** Serializes the GUI config and writes it to the keyboard.

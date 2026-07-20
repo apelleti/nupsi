@@ -17,6 +17,7 @@
 */
 import {
     HidChannels,
+    KeyboardDescriptor,
     NuPhyKeyboard,
     PRODUCT_ID,
     PermissionsError,
@@ -148,37 +149,71 @@ function findCandidateWindows(devices: Device[]): Candidate | null {
     };
 }
 
-function findCandidateSinglePath(devices: Device[]): Candidate | null {
-    let candidate: Candidate | null = null;
+function keyboardFromDevice(
+    device: Device,
+    descriptor: KeyboardDescriptor,
+): NuPhyKeyboard {
+    const path = device.path as string;
+    return new NuPhyKeyboard(descriptor, {
+        productString: device.product ?? "",
+        manufacturerString: device.manufacturer,
+        firmwareVersion: device.release,
+        path,
+        open: () => openChannels(path, path),
+    });
+}
+
+/**
+ * Non-Windows discovery. Like NuPhy::find in the C++ implementation, this
+ * keeps scanning past unsupported models and selects the first *supported*
+ * keyboard, rather than locking onto the first device that merely matches the
+ * vendor interface.
+ */
+function selectSinglePath(
+    devices: Device[],
+    verify: boolean,
+): NuPhyKeyboard | null {
+    let chosen: { device: Device; descriptor: KeyboardDescriptor } | null =
+        null;
     let multipleWarned = false;
+    let unsupportedName: string | null = null;
 
     for (const device of devices) {
         if (!isNuPhyInterface(device) || device.path === undefined) {
-            continue;
-        }
-        if (candidate !== null) {
-            if (candidate.dataPath !== device.path && !multipleWarned) {
-                process.stderr.write(
-                    "[Warning] Multiple NuPhy keyboards found! Please keep only one plugged in. Only the first matched device will be used.\n",
-                );
-                multipleWarned = true;
-            }
             continue;
         }
         if (device.product === undefined) {
             // Enumerable but not readable: a permissions problem.
             throw accessError();
         }
-        candidate = {
-            productString: device.product,
-            manufacturerString: device.manufacturer,
-            firmwareVersion: device.release,
-            dataPath: device.path,
-            requestPath: device.path,
-        };
+        const descriptor = matchDescriptor(device.product, verify);
+        if (descriptor === null) {
+            unsupportedName = device.manufacturer
+                ? `${device.manufacturer} ${device.product}`
+                : device.product;
+            continue;
+        }
+        if (chosen === null) {
+            chosen = { device, descriptor };
+        } else if (chosen.device.path !== device.path && !multipleWarned) {
+            // A different physical keyboard also matched (same path is just
+            // another collection of the same device).
+            process.stderr.write(
+                "[Warning] Multiple NuPhy keyboards found! Please keep only one plugged in. Only the first matched device will be used.\n",
+            );
+            multipleWarned = true;
+        }
     }
 
-    return candidate;
+    if (chosen === null) {
+        if (unsupportedName !== null) {
+            throw new UnsupportedKeyboardError(
+                `No supported keyboards found, but a similar keyboard, '${unsupportedName}', has been found.\n\nIf you believe this keyboard not being supported is an error, please file a bug report.`,
+            );
+        }
+        return null;
+    }
+    return keyboardFromDevice(chosen.device, chosen.descriptor);
 }
 
 /**
@@ -189,15 +224,17 @@ export async function findKeyboard(
     verify = true,
 ): Promise<NuPhyKeyboard | null> {
     const devices = await devicesAsync(VENDOR_ID, PRODUCT_ID);
-    const candidate =
-        process.platform === "win32"
-            ? findCandidateWindows(devices)
-            : findCandidateSinglePath(devices);
 
+    if (process.platform !== "win32") {
+        return selectSinglePath(devices, verify);
+    }
+
+    // Windows: the request and data channels are distinct HID paths, so a
+    // single keyboard is assembled from two collections first.
+    const candidate = findCandidateWindows(devices);
     if (candidate === null) {
         return null;
     }
-
     const descriptor = matchDescriptor(candidate.productString, verify);
     if (descriptor === null) {
         const displayName = candidate.manufacturerString
@@ -207,7 +244,6 @@ export async function findKeyboard(
             `No supported keyboards found, but a similar keyboard, '${displayName}', has been found.\n\nIf you believe this keyboard not being supported is an error, please file a bug report.`,
         );
     }
-
     return new NuPhyKeyboard(descriptor, {
         productString: candidate.productString,
         manufacturerString: candidate.manufacturerString,

@@ -751,3 +751,9 @@ p {
     color: var(--mint-light);
     font-family: monospace;
 }
+
+.keycode-picker-button.raw {
+    font-family: monospace;
+    color: var(--yellow);
+    border-color: var(--yellow);
+}

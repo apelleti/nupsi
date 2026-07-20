@@ -73,7 +73,13 @@ export class NuPhyKeyboard {
         for (let attempt = 0; ; attempt += 1) {
             try {
                 await channels.sendRequestReport(request);
-                break;
+                // The read is retried alongside the send: the firmware's
+                // flash-commit stall can surface on either the request or the
+                // get, so both must be inside the retry.
+                return await channels.receiveDataReport(
+                    DATA_REPORT_ID,
+                    MAX_REPORT_SIZE,
+                );
             } catch (err) {
                 if (attempt >= 4) {
                     throw err;
@@ -81,7 +87,6 @@ export class NuPhyKeyboard {
                 await delay(150);
             }
         }
-        return channels.receiveDataReport(DATA_REPORT_ID, MAX_REPORT_SIZE);
     }
 
     async getKeymap(mode: KeyboardMode = "win"): Promise<number[]> {

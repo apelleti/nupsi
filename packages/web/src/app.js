@@ -256,7 +256,10 @@ function groupKeycodes(keycodes) {
 
 function setPickerValue(pickerButton, name) {
     pickerButton.setAttribute("data-value", name);
-    pickerButton.innerHTML = name;
+    // Choosing a named keycode clears any raw value it replaces.
+    pickerButton.removeAttribute("data-raw");
+    pickerButton.classList.remove("raw");
+    pickerButton.textContent = name;
 }
 
 function openKeycodePicker(alt) {
@@ -842,7 +845,11 @@ function renderKeyEditor(container, key, alt) {
     let currentModifiers = remap[id]
         ? (currentRemap.modifiers ?? [])
         : defaultModifiers;
+    let isRaw = currentRemap.raw !== undefined && currentRemap.raw !== null;
     let value = currentRemap.key ?? defaultMapping;
+    let rawLabel = isRaw
+        ? `0x${currentRemap.raw.toString(16).padStart(8, "0")}`
+        : null;
 
     container.appendChild(
         n("div", (row) => {
@@ -865,9 +872,23 @@ function renderKeyEditor(container, key, alt) {
                         ? "keycode-selector-alt"
                         : "keycode-selector";
                     pickerButton.className = "keycode-picker-button";
-                    pickerButton.setAttribute("data-value", value);
-                    pickerButton.innerHTML = value;
-                    pickerButton.title = "Choose a keycode";
+                    if (isRaw) {
+                        // Raw (unnameable) word: show the hex and remember it,
+                        // with no named value. Picking a keycode replaces it.
+                        pickerButton.classList.add("raw");
+                        pickerButton.setAttribute("data-value", "");
+                        pickerButton.setAttribute(
+                            "data-raw",
+                            String(currentRemap.raw),
+                        );
+                        pickerButton.textContent = rawLabel;
+                        pickerButton.title =
+                            "Raw value — choose a keycode to replace it";
+                    } else {
+                        pickerButton.setAttribute("data-value", value);
+                        pickerButton.textContent = value;
+                        pickerButton.title = "Choose a keycode";
+                    }
                     pickerButton.onclick = () => openKeycodePicker(alt);
                 }),
             );
@@ -1024,7 +1045,14 @@ function readEditorInto(
     defaultModifiers,
 ) {
     let currentRemap = remap[id] ?? {};
-    let incomingID = g(`#${selectorID}`).getAttribute("data-value");
+    let selectorNode = g(`#${selectorID}`);
+    let incomingID = selectorNode.getAttribute("data-value");
+    let rawAttr = selectorNode.getAttribute("data-raw");
+    // A raw value left untouched (no keycode chosen) is preserved as-is.
+    if (rawAttr !== null && !incomingID) {
+        remap[id] = { raw: Number(rawAttr) };
+        return;
+    }
     let incomingModifiers = new Set();
     for (let modifier in modifiers) {
         let node = g(`#modifier-${modifier}${modifierSuffix}`);
