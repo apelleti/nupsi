@@ -506,10 +506,23 @@ function showWriteConfirmation() {
                             if (!d.to) {
                                 li.className = "diff-reset";
                             }
-                            li.innerHTML =
-                                `<span class="diff-mode">${d.mode}</span> ` +
-                                `<b>${d.id}</b>&nbsp;: ` +
-                                `${formatRemapEntry(d.from)} → ${formatRemapEntry(d.to)}`;
+                            // Build with DOM nodes / textContent: d.id and the
+                            // entry labels can derive from a loaded profile.
+                            li.appendChild(
+                                n("span", (s) => {
+                                    s.className = "diff-mode";
+                                    s.textContent = d.mode;
+                                }),
+                            );
+                            li.appendChild(document.createTextNode(" "));
+                            li.appendChild(
+                                n("b", (b) => (b.textContent = d.id)),
+                            );
+                            li.appendChild(
+                                document.createTextNode(
+                                    ` : ${formatRemapEntry(d.from)} → ${formatRemapEntry(d.to)}`,
+                                ),
+                            );
                         }),
                     );
                 }
@@ -570,6 +583,9 @@ async function openConfigFile(file) {
     try {
         bridge.validateConfig(value);
         window.config.unmarshall(YAML.parse(value));
+        // unmarshall doesn't render; without this the badges and the Write
+        // button's enabled state stay stale after loading a profile.
+        render();
         toast("Profile loaded. Review the changes, then Write.", "success");
     } catch (err) {
         showErrorPanel("Invalid YAML file", err.message);
@@ -834,6 +850,11 @@ function openLightingPanel() {
                 );
             }),
         );
+        // Sync the colour row to the initially-selected effect (onchange
+        // doesn't fire on open).
+        colorRow.style.display = usesColor(Number(effectSelect.value))
+            ? ""
+            : "none";
         card.appendChild(
             n("p", (buttons) => {
                 buttons.className = "modal-buttons";
@@ -842,9 +863,11 @@ function openLightingPanel() {
                     button(
                         "Apply",
                         async () => {
-                            let { r, g, b } = parseHexColor(colorInput.value);
-                            let effect = Number(effectSelect.value);
                             try {
+                                let { r, g, b } = parseHexColor(
+                                    colorInput.value,
+                                );
+                                let effect = Number(effectSelect.value);
                                 await bridge.setLighting({ r, g, b, effect });
                                 toast("Lighting applied.", "success");
                             } catch (err) {
@@ -925,7 +948,9 @@ function renderKeyboard() {
                                 e.appendChild(
                                     n("span", (badge) => {
                                         badge.className = "remap-badge";
-                                        badge.innerHTML = `→ ${badgeText}`;
+                                        // textContent: badgeText derives from
+                                        // the (possibly loaded) config.
+                                        badge.textContent = `→ ${badgeText}`;
                                     }),
                                 );
                             }
@@ -1175,6 +1200,9 @@ function readEditorInto(
     if (incomingID == defaultMapping && modifiersEqual) {
         delete remap[id];
     } else {
+        // Choosing a keycode replaces a raw value; drop it so it doesn't win
+        // in normalize/format/marshal (all of which check `raw` first).
+        delete currentRemap.raw;
         currentRemap.key = incomingID;
         currentRemap.modifiers = [...incomingModifiers];
         // Only omit the field when there are truly no modifiers. Stripping it

@@ -138,7 +138,9 @@ async function run(options: CliOptions): Promise<void> {
 }
 
 function parseEffect(value: string): number {
-    if (value in LightingEffect) {
+    // Object.hasOwn, not `in`: `in` matches inherited Object.prototype members
+    // (toString, constructor, …), which would take this branch spuriously.
+    if (Object.hasOwn(LightingEffect, value)) {
         return LightingEffect[value as keyof typeof LightingEffect];
     }
     const n = Number(value);
@@ -181,7 +183,7 @@ const program = new Command("nupsi")
     )
     .option(
         "--effect <name|id>",
-        "Backlight effect for --rgb (solid, reaction, off, or a numeric id 0-30).",
+        "Backlight effect for --rgb (solid, reaction, off, or a numeric id 0-20).",
     );
 
 program.parse();

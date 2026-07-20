@@ -48,6 +48,8 @@ export function hidAccessFailureMessage(
                 'echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"\' | sudo tee /etc/udev/rules.d/70-nupsi.rules && ' +
                 "sudo udevadm control --reload-rules && sudo udevadm trigger"
             );
+        case "web":
+            return "Couldn't access the keyboard. Close any other app (or browser tab) using it, then reconnect. On Linux, a udev rule may be required.";
         default:
             return "Unable to read HID devices. Consider running Nupsi as a superuser or checking your operating system's HID access permissions.";
     }

@@ -101,7 +101,8 @@ function getModeSection(
 }
 
 export interface ValidateOptions {
-    /** Allow `raw:` entries. The GUI passes false. */
+    /** Allow `raw:` entries (default true). Needed to round-trip on-device
+     *  words the app can't name. */
     rawOk?: boolean;
 }
 
@@ -190,6 +191,14 @@ export function buildKeymapsFromYaml(
 
         for (const [keyID, rawValue] of Object.entries(section)) {
             const index = indices[keyID]!;
+            // Guard the descriptor's own invariant (as finalizeKeymap does for
+            // aliases): an out-of-range index would grow the array with holes
+            // that serialize as extra zero words and corrupt the report.
+            if (index >= keymap.length) {
+                throw new ConfigError(
+                    `Invalid keyboard data: index ${index} for '${keyID}' is out of range (keymap length ${keymap.length}).`,
+                );
+            }
             const remap = normalizeEntry(topLevelKey, keyID, rawValue);
 
             if (remap.raw !== undefined) {

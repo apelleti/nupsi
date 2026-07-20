@@ -64,7 +64,9 @@ async function openChannels(
         try {
             request = await HIDAsync.open(requestPath);
         } catch {
-            await data.close();
+            // Close the data handle, but don't let a close rejection shadow
+            // the permissions error we mean to throw.
+            await data.close().catch(() => {});
             throw accessError();
         }
     }
@@ -81,10 +83,16 @@ async function openChannels(
             return Uint8Array.from(read);
         },
         async close() {
-            if (request !== data) {
-                await request.close();
+            // Always close the data handle even if the request handle's close
+            // rejects — otherwise an open HIDAsync handle keeps the process
+            // alive and the CLI hangs on exit (Windows two-handle case).
+            try {
+                if (request !== data) {
+                    await request.close();
+                }
+            } finally {
+                await data.close();
             }
-            await data.close();
         },
     };
 }
@@ -183,7 +191,12 @@ function selectSinglePath(
             continue;
         }
         if (device.product === undefined) {
-            // Enumerable but not readable: a permissions problem.
+            // Enumerable but not readable: a permissions problem — but a
+            // usable keyboard already chosen wins over another device we
+            // simply can't read.
+            if (chosen !== null) {
+                continue;
+            }
             throw accessError();
         }
         const descriptor = matchDescriptor(device.product, verify);

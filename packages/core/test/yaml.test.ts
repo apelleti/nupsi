@@ -13,6 +13,21 @@ const exampleYml = readFileSync(
     "utf8",
 );
 
+describe("keymap index bounds", () => {
+    it("rejects an out-of-range descriptor index instead of growing holes", () => {
+        const badDescriptor = {
+            ...AIR75,
+            indicesByKeyName: {
+                win: { ...AIR75.indicesByKeyName.win, capslock: 9999 },
+                mac: AIR75.indicesByKeyName.mac,
+            },
+        };
+        expect(() =>
+            buildKeymapsFromYaml(badDescriptor, "keys:\n  capslock: esc\n"),
+        ).toThrow(/out of range/);
+    });
+});
+
 describe("example.yml (the shipped reference profile)", () => {
     it("validates for both modes on the Air75", () => {
         validateYamlKeymap(AIR75, exampleYml, "win");
