@@ -82,7 +82,6 @@ export const LIGHTING_EFFECTS: readonly LightingEffectInfo[] = [
     { id: 17, name: "Blossom", color: false },
     { id: 18, name: "Rotating Storm", color: true },
     { id: 19, name: "Collision", color: true },
-    { id: 20, name: "Perfect", color: true },
     { id: 0, name: "Off", color: false },
 ];
 
