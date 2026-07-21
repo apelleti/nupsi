@@ -14,6 +14,11 @@
         "lint": "prettier --check . && pnpm -r --filter '!@nupsi/web' exec tsc --noEmit",
         "format": "prettier --write ."
     },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "esbuild"
+        ]
+    },
     "devDependencies": {
         "@types/node": "^22.15.0",
         "prettier": "^3.6.2",
