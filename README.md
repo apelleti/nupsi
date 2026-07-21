@@ -46,7 +46,7 @@ pnpm test      # vitest, includes the golden byte-for-byte tests
 pnpm lint      # prettier + tsc --noEmit
 
 pnpm --filter @nupsi/web dev      # run the web app on localhost
-pnpm --filter @nupsi/web build    # produce the static site in ./dist
+pnpm --filter @nupsi/web build    # produce the static site in packages/web/dist
 ```
 
 The web app needs a Chromium-based browser (Chrome, Edge, Brave). On **Linux**
