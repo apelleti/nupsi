@@ -10,7 +10,7 @@ same protocol, the same `res/` keyboard data, and the same `.yml` profiles,
 dropping the C++ toolchain (CMake, cmake-js, Ruby, yaml-cpp) for a single
 TypeScript codebase.
 
-> **Web app:** https://apelleti.github.io/nyphy-console/ (Chromium browsers)
+> **Repository:** https://github.com/apelleti/nupsi — the static web app under `packages/web` runs in Chromium browsers.
 
 > **Status: validated on Air75 (CLI, end-to-end incl. physical check);
 > experimental elsewhere.** The encoder is validated byte-for-byte against
