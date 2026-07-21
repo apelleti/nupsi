@@ -1352,7 +1352,7 @@ function main() {
                     brand.appendChild(
                         n("span", (mark) => {
                             mark.className = "brand-mark";
-                            mark.innerHTML = "νδ";
+                            mark.textContent = "νψ";
                         }),
                     );
                     brand.appendChild(
