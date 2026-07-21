@@ -38,6 +38,9 @@ importers:
       '@nupsi/core':
         specifier: workspace:*
         version: link:../core
+      '@vercel/analytics':
+        specifier: ^2.0.1
+        version: 2.0.1
       yaml:
         specifier: ^2.8.0
         version: 2.9.0
@@ -352,6 +355,35 @@ packages:
 
   '@types/w3c-web-hid@1.0.7':
     resolution: {integrity: sha512-/y97wBH7fYB5vKoDIn11O1ZDMNFLCAVqZ9af0OWDN7VSO2ClErEN2HlGbBuPgHBTUmZOVx1og2ZHX1U2gEJM4Q==}
+
+  '@vercel/analytics@2.0.1':
+    resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
+    peerDependencies:
+      '@remix-run/react': ^2
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      nuxt: '>= 3'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      nuxt:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
 
   '@vitest/expect@3.2.7':
     resolution: {integrity: sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==}
@@ -787,6 +819,8 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/w3c-web-hid@1.0.7': {}
+
+  '@vercel/analytics@2.0.1': {}
 
   '@vitest/expect@3.2.7':
     dependencies:

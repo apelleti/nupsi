@@ -22,11 +22,15 @@ import "@fontsource/nunito/800.css";
 import "./app.css";
 
 import { LIGHTING_EFFECTS, parseHexColor } from "@nupsi/core";
+import { inject as injectAnalytics } from "@vercel/analytics";
 import YAML from "yaml";
 import * as bridge from "./bridge.js";
 import keyboards from "./keyboards.js";
 import modifiers from "./modifiers.js";
 import { g, n } from "./tinydom.js";
+
+// Vercel Web Analytics — no-op unless served from a Vercel deployment.
+injectAnalytics();
 
 // --- state --------------------------------------------------------------
 
@@ -255,6 +259,49 @@ function groupKeycodes(keycodes) {
     return groups.filter((group) => group.names.length > 0);
 }
 
+// Extra search terms so a keycode is found by the name people actually type
+// (the internal name is often terse, e.g. "sysrq" for Print Screen).
+const KEYCODE_ALIASES = {
+    sysrq: "print screen printscreen prtsc prtscn",
+    scrolllock: "scroll lock",
+    pausebreak: "pause break",
+    capslock: "caps lock",
+    pgup: "page up",
+    pgdn: "page down pagedown",
+    ins: "insert",
+    del: "delete",
+    esc: "escape",
+    grave: "` ~ backtick tilde",
+    minus: "- dash hyphen",
+    equal: "= equals",
+    lbracket: "[ left bracket",
+    rbracket: "] right bracket",
+    backslash: "\\ pipe",
+    fwdslash: "/ slash forward slash",
+    semicolon: "; colon",
+    quote: "' \" apostrophe",
+    comma: ", less than",
+    period: ". dot full stop greater than",
+    space: "spacebar",
+    backspace: "bksp",
+    enter: "return",
+    fn: "function",
+    lmeta: "win windows cmd command super left",
+    rmeta: "win windows cmd command super right",
+    lalt: "option opt left",
+    ralt: "option opt right",
+    lctrl: "control left",
+    rctrl: "control right",
+};
+
+function keycodeMatches(name, needle) {
+    if (name.toLowerCase().includes(needle)) {
+        return true;
+    }
+    const aliases = KEYCODE_ALIASES[name];
+    return aliases !== undefined && aliases.includes(needle);
+}
+
 function setPickerValue(pickerButton, name) {
     pickerButton.setAttribute("data-value", name);
     // Choosing a named keycode clears any raw value it replaces.
@@ -285,7 +332,7 @@ function openKeycodePicker(alt) {
         let needle = filter.trim().toLowerCase();
         for (let group of groupKeycodes(keycodes)) {
             let names = group.names.filter((name) =>
-                name.toLowerCase().includes(needle),
+                keycodeMatches(name, needle),
             );
             if (names.length === 0) {
                 continue;
