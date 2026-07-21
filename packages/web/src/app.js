@@ -830,10 +830,10 @@ function renderToolbar() {
     toolbar.appendChild(
         n("div", (group) => {
             group.className = "toolbar-group toolbar-actions";
-            group.appendChild(button("Lighting…", openLightingPanel));
-            group.appendChild(button("Open…", pickConfigFile));
-            group.appendChild(button("Save…", saveConfigFile));
-            group.appendChild(button("Backup…", backupConfigFile));
+            group.appendChild(button("Lighting", openLightingPanel));
+            group.appendChild(button("Open", pickConfigFile));
+            group.appendChild(button("Save", saveConfigFile));
+            group.appendChild(button("Backup", backupConfigFile));
         }),
     );
 }

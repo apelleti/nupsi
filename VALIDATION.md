@@ -6,7 +6,7 @@ and before releasing it as the default implementation — each board should go
 through this checklist **once per board model** (Air75, Air60, Halo75).
 
 Writing a keymap is the risky operation of a reverse-engineered protocol:
-always start with a **Backup** (the app's Backup… button) before writing.
+always start with a **Backup** (the app's Backup button) before writing.
 
 > The original hardware validation was done with a command-line tool that has
 > since been removed; the project ships only the web app now. The
@@ -28,15 +28,15 @@ In Chrome and Edge, ideally on Linux + macOS + Windows:
 
 1. **Connect Keyboard** lists and adopts the board (udev rule needed on
    Linux). The status pill shows the model.
-2. **Backup…** downloads the current keymap as a `.yml`. Keep it.
+2. **Backup** downloads the current keymap as a `.yml`. Keep it.
 3. The rendered layout matches the physical keyboard, and existing on-device
    remaps show up as badges.
 4. Remap capslock → esc, **Write** (review the diff), verify physically, in
    **both** Win and Mac side-switch positions.
-5. **Open…** the backup / `example.yml` round-trips.
-6. **Lighting…**: set a solid colour, Apply, confirm the LEDs change; try an
+5. **Open** the backup / `example.yml` round-trips.
+6. **Lighting**: set a solid colour, Apply, confirm the LEDs change; try an
    effect.
-7. Restore your backup via **Open…** + **Write**.
+7. Restore your backup via **Open** + **Write**.
 
 ## Known unknowns to confirm on hardware
 
@@ -72,7 +72,7 @@ Once a board passes, note it (board, firmware, OS, browser) in this file.
 - **Keymap semantics reminder**: loading a `.yml` profile rebuilds _both_
   modes from the default keymap — any on-keyboard customization not present
   in the profile (e.g. an F-row set to F1-F12 from the official console) is
-  overwritten. Always back up both modes first (the Backup… button).
+  overwritten. Always back up both modes first (the Backup button).
 - The physical Win/Mac side switch selects which keymap is active; a write
   to the inactive mode is stored but has no visible effect until the switch
   is flipped.

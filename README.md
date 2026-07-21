@@ -45,7 +45,7 @@ the official NuPhy Console — see [`util/nuphy-console-notes.md`](./util/nuphy-
 3. Click a key, choose its new mapping (picker or the ⌨ capture button), then
    **Write** — review the diff and confirm. Flip the side switch to edit the
    other mode.
-4. **Backup…** downloads the current keymap; **Lighting…** sets colour/effect.
+4. **Backup** downloads the current keymap; **Lighting** sets colour/effect.
 
 ## Deploying
 
