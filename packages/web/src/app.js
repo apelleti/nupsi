@@ -843,7 +843,8 @@ function openLightingPanel() {
         toast("Connect a keyboard first.", "warning");
         return;
     }
-    let colorInput, effectSelect;
+    let colorInput;
+    let selectedEffectId = LIGHTING_EFFECTS[0].id;
     let overlay = modal((card, close) => {
         card.appendChild(n("h3", (h) => (h.textContent = "Backlight")));
         card.appendChild(
@@ -856,28 +857,43 @@ function openLightingPanel() {
         let colorRow;
         let usesColor = (id) =>
             LIGHTING_EFFECTS.find((fx) => fx.id === id)?.color ?? true;
+        // Effect chips (a plain grid, not a native <select> — that scrolls
+        // oddly on hover with this many options).
         card.appendChild(
-            n("div", (row) => {
-                row.className = "lighting-row";
-                row.appendChild(n("label", (l) => (l.textContent = "Effect")));
-                row.appendChild(
-                    n("select", (e) => {
-                        effectSelect = e;
-                        e.className = "lighting-effect";
+            n("div", (section) => {
+                section.className = "lighting-effect-section";
+                section.appendChild(
+                    n("label", (l) => (l.textContent = "Effect")),
+                );
+                section.appendChild(
+                    n("div", (grid) => {
+                        grid.className = "effect-grid";
                         for (let fx of LIGHTING_EFFECTS) {
-                            e.appendChild(
-                                n("option", (o) => {
-                                    o.value = String(fx.id);
-                                    o.textContent = fx.name;
+                            grid.appendChild(
+                                n("button", (item) => {
+                                    item.type = "button";
+                                    item.className =
+                                        fx.id === selectedEffectId
+                                            ? "effect-item selected"
+                                            : "effect-item";
+                                    item.textContent = fx.name;
+                                    item.onclick = () => {
+                                        selectedEffectId = fx.id;
+                                        for (let c of grid.children) {
+                                            c.classList.remove("selected");
+                                        }
+                                        item.classList.add("selected");
+                                        // Rainbow / multi-colour effects ignore
+                                        // the chosen colour.
+                                        colorRow.style.display = usesColor(
+                                            fx.id,
+                                        )
+                                            ? ""
+                                            : "none";
+                                    };
                                 }),
                             );
                         }
-                        e.onchange = () => {
-                            // Rainbow / multi-colour effects ignore the colour.
-                            colorRow.style.display = usesColor(Number(e.value))
-                                ? ""
-                                : "none";
-                        };
                     }),
                 );
             }),
@@ -897,11 +913,8 @@ function openLightingPanel() {
                 );
             }),
         );
-        // Sync the colour row to the initially-selected effect (onchange
-        // doesn't fire on open).
-        colorRow.style.display = usesColor(Number(effectSelect.value))
-            ? ""
-            : "none";
+        // Sync the colour row to the initially-selected effect.
+        colorRow.style.display = usesColor(selectedEffectId) ? "" : "none";
         card.appendChild(
             n("p", (buttons) => {
                 buttons.className = "modal-buttons";
@@ -914,8 +927,12 @@ function openLightingPanel() {
                                 let { r, g, b } = parseHexColor(
                                     colorInput.value,
                                 );
-                                let effect = Number(effectSelect.value);
-                                await bridge.setLighting({ r, g, b, effect });
+                                await bridge.setLighting({
+                                    r,
+                                    g,
+                                    b,
+                                    effect: selectedEffectId,
+                                });
                                 toast("Lighting applied.", "success");
                             } catch (err) {
                                 showErrorPanel("Lighting failed", err.message);

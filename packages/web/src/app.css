@@ -815,12 +815,41 @@ p {
     cursor: pointer;
 }
 
-.lighting-effect {
+.lighting-effect-section {
+    margin: 10px 0;
+}
+
+.lighting-effect-section label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.effect-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.effect-item {
     font-family: inherit;
     font-size: 14px;
     color: var(--white);
     background-color: var(--darker-bg);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px 10px;
+    border-radius: 7px;
+    padding: 5px 11px;
+    cursor: pointer;
+}
+
+.effect-item:hover {
+    border-color: var(--mint);
+}
+
+.effect-item.selected {
+    color: var(--dark);
+    background-color: var(--mint);
+    border-color: var(--mint);
 }
