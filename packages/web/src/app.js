@@ -1369,8 +1369,7 @@ function main() {
                     right.appendChild(
                         n("a", (link) => {
                             link.className = "github-link";
-                            link.href =
-                                "https://github.com/apelleti/nupsi";
+                            link.href = "https://github.com/apelleti/nupsi";
                             link.target = "_blank";
                             link.rel = "noopener noreferrer";
                             link.title = "View the source on GitHub";

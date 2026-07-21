@@ -1,8 +1,8 @@
 # Nupsi
 
 An open-source alternative to the NuPhy Console for the Air75 / Air60 /
-Halo75 V1 keyboards. Remap your keys from a **CLI** or a static **web app**
-(no install, no server) — a TypeScript port with no C++ toolchain.
+Halo75 V1 keyboards — a static **web app** that remaps your keys (and controls
+the RGB backlight) straight from the browser, no install and no server.
 
 Nupsi is a port of [**nudelta**](https://github.com/donn/nudelta) by Mohamed
 Gaber, which reverse-engineered the keyboards' USB protocol. It reuses the
@@ -10,21 +10,20 @@ same protocol, the same `res/` keyboard data, and the same `.yml` profiles,
 dropping the C++ toolchain (CMake, cmake-js, Ruby, yaml-cpp) for a single
 TypeScript codebase.
 
-> **Repository:** https://github.com/apelleti/nupsi — the static web app under `packages/web` runs in Chromium browsers.
+> **Repository:** https://github.com/apelleti/nupsi — the app runs in
+> Chromium browsers (Chrome, Edge, Brave) via WebHID.
 
-> **Status: validated on Air75 (CLI, end-to-end incl. physical check);
-> experimental elsewhere.** The encoder is validated byte-for-byte against
-> USB captures from the original nudelta C++ implementation (see
-> `packages/core/test/` and `util/usb/`). Air60 and Halo75 still need
-> on-hardware validation, and the web app needs a write test — see
-> [VALIDATION.md](./VALIDATION.md).
+> **Status: keymap validated on Air75 (end-to-end incl. physical check),
+> RGB colour/effect validated on Air75; experimental elsewhere.** The encoder
+> is validated byte-for-byte against USB captures from the original nudelta
+> C++ implementation (see `packages/core/test/` and `util/usb/`). Air60 and
+> Halo75 still need on-hardware validation — see [VALIDATION.md](./VALIDATION.md).
 
 ## Layout
 
 | Package       | What it is                                                                                                                        |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `@nupsi/core` | Protocol encoding/decoding, keyboard descriptors (data-driven), YAML profile validation. Pure logic, no I/O, fully tested.        |
-| `@nupsi/cli`  | `nupsi` command-line tool, a drop-in equivalent of the nudelta CLI, using [node-hid](https://github.com/node-hid/node-hid).       |
+| `@nupsi/core` | Protocol encoding/decoding, keyboard descriptors (data-driven), YAML profile validation, RGB lighting. Pure logic, fully tested. |
 | `@nupsi/web`  | Static web app using [WebHID](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API): no install, no server. Chromium-only. |
 
 The keyboard data (default keymaps, key indices, keycodes) is generated from
@@ -42,23 +41,23 @@ descriptor entry in `packages/core/src/descriptors.ts`, and a layout in
 
 ```sh
 pnpm install
-pnpm build     # core + cli
+pnpm build     # @nupsi/core
 pnpm test      # vitest, includes the golden byte-for-byte tests
 pnpm lint      # prettier + tsc --noEmit
 
-node packages/cli/dist/index.js --help
-pnpm --filter @nupsi/web dev    # web app on localhost (WebHID needs Chrome/Edge)
+pnpm --filter @nupsi/web dev      # run the web app on localhost
+pnpm --filter @nupsi/web build    # produce the static site in packages/web/dist
 ```
 
-## Permissions
+The web app needs a Chromium-based browser (Chrome, Edge, Brave). On **Linux**
+a udev rule is required so the browser can reach the keyboard over hidraw:
 
-Same as nudelta:
+```sh
+echo 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-nupsi.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 
-- **Linux**: a udev rule is required —
-  `echo 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-nupsi.rules && sudo udevadm control --reload-rules && sudo udevadm trigger`
-- **macOS**: grant Input Monitoring to your terminal (CLI). The web app goes
-  through Chrome's own permission prompt.
-- **Windows**: none.
+On macOS and Windows the browser handles the permission prompt itself.
 
 ## Credits & license
 

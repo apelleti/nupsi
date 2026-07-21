@@ -6,46 +6,37 @@ and before releasing it as the default implementation — each board should go
 through this checklist **once per board model** (Air75, Air60, Halo75).
 
 Writing a keymap is the risky operation of a reverse-engineered protocol:
-always start with a backup, and keep the C++ CLI available for
-cross-checking and recovery.
+always start with a **Backup** (the app's Backup… button) before writing.
+
+> The original hardware validation was done with a command-line tool that has
+> since been removed; the project ships only the web app now. The
+> "Validated boards" record below reflects that historical run.
 
 ## Prerequisites
 
 - The keyboard plugged in **via USB** (not Bluetooth/2.4 GHz).
-- Permissions set up (see README).
-- Optional: a build of the original C++ CLI from
-  [donn/nudelta](https://github.com/donn/nudelta) (`yarn build_native`), a
-  handy independent cross-check and recovery tool.
-- `pnpm build` run here. Below, `ndts` = `node packages/cli/dist/index.js`.
-
-## CLI checklist
-
-1. **Detection**: `ndts -f` prints the same model and firmware as the C++
-   `nudelta -f`.
-2. **Backup (with the C++ CLI)**: `nudelta -D backup_win.bin` and
-   `nudelta -D backup_mac.bin -M`. Keep these files.
-3. **Read parity**: `ndts -D ts_win.bin` then `cmp backup_win.bin ts_win.bin`
-   — the dumps must be identical (same for `-M`).
-4. **Write**: `ndts -l ../example.yml`, then check physically (capslock
-   should act as Escape, in both Win and Mac switch positions).
-5. **Read-back**: `nudelta -D after.bin` (C++) and confirm the diff against
-   the backup matches the profile's remaps and nothing else.
-6. **Reset**: `ndts -r`, check the keyboard behaves stock again.
-7. **Restore**: `ndts -L backup_win.bin` and `ndts -L backup_mac.bin -M` if
-   you had a custom keymap before testing.
+- Permissions set up (see README — udev rule on Linux).
+- A Chromium browser (Chrome, Edge, Brave). `pnpm --filter @nupsi/web dev`
+  (or the built site).
+- Optional: the original C++ CLI from
+  [donn/nudelta](https://github.com/donn/nudelta) as an independent
+  cross-check / recovery tool.
 
 ## Web app checklist
 
-Same flow through the UI, in Chrome and Edge, ideally on Linux + macOS +
-Windows:
+In Chrome and Edge, ideally on Linux + macOS + Windows:
 
-1. "Connect Keyboard" lists and adopts the board (udev rule needed on
-   Linux).
-2. The rendered layout matches the physical keyboard.
-3. Remap capslock → esc, WRITE, verify physically, in both Win and Mac
-   modes.
-4. Open/Save round-trips `example.yml`.
-5. After testing, reset from the CLI (`ndts -r`) and restore your backup.
+1. **Connect Keyboard** lists and adopts the board (udev rule needed on
+   Linux). The status pill shows the model.
+2. **Backup…** downloads the current keymap as a `.yml`. Keep it.
+3. The rendered layout matches the physical keyboard, and existing on-device
+   remaps show up as badges.
+4. Remap capslock → esc, **Write** (review the diff), verify physically, in
+   **both** Win and Mac side-switch positions.
+5. **Open…** the backup / `example.yml` round-trips.
+6. **Lighting…**: set a solid colour, Apply, confirm the LEDs change; try an
+   effect.
+7. Restore your backup via **Open…** + **Write**.
 
 ## Known unknowns to confirm on hardware
 
@@ -79,7 +70,7 @@ Once a board passes, note it (board, firmware, OS, browser) in this file.
 - **Keymap semantics reminder**: loading a `.yml` profile rebuilds _both_
   modes from the default keymap — any on-keyboard customization not present
   in the profile (e.g. an F-row set to F1-F12 from the official console) is
-  overwritten. Always `-D` a backup of both modes first.
+  overwritten. Always back up both modes first (the Backup… button).
 - The physical Win/Mac side switch selects which keymap is active; a write
   to the inactive mode is stored but has no visible effect until the switch
   is flipped.
