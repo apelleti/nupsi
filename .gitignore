@@ -1,3 +1,9 @@
 node_modules/
+**/node_modules/
+
+# Build output — root and every package (@nupsi/core, @nupsi/web).
 dist/
+**/dist/
+/dist/
+
 *.tsbuildinfo
