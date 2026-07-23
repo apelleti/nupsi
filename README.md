@@ -12,6 +12,8 @@ dropping the C++ toolchain (CMake, cmake-js, Ruby, yaml-cpp) for a single
 TypeScript codebase. The RGB support was reverse-engineered separately from
 the official NuPhy Console — see [`util/nuphy-console-notes.md`](./util/nuphy-console-notes.md).
 
+![The Nupsi web app editing an Air75 Windows keymap](./res/screenshot.png)
+
 > **Repository:** https://github.com/apelleti/nupsi
 >
 > **Browser:** Chromium only (Chrome, Edge, Brave) — WebHID isn't in Firefox
@@ -31,6 +33,12 @@ the official NuPhy Console — see [`util/nuphy-console-notes.md`](./util/nuphy-
 - **Confirm-diff before writing**: a clear list of exactly what will change
   (including resets to default) before anything is sent.
 - **Keycode picker** with search and groups, plus a **press-a-key** capture.
+- **Presets**: one click to put copy/paste on the same physical key under
+  Windows and macOS, switch the letters to AZERTY, turn Caps Lock into Escape
+  or Control, flip the F-row to media-first, or repurpose the ✂️, 🐱 and right
+  Ctrl keys (cut/copy/paste, lock screen, emoji picker, search) with the right
+  shortcut on each OS. Presets edit both keymaps at once and show up in the
+  confirm-diff like any other change.
 - **Backup / Open / Save** `.yml` profiles (compatible with nudelta).
 - **RGB backlight**: pick a solid colour and one of **20 hardware effects**
   (Static, Breathing, Rainbow Wheel, Reaction, Sine Wave, …); the colour
@@ -45,7 +53,8 @@ the official NuPhy Console — see [`util/nuphy-console-notes.md`](./util/nuphy-
 3. Click a key, choose its new mapping (picker or the ⌨ capture button), then
    **Write** — review the diff and confirm. Flip the side switch to edit the
    other mode.
-4. **Backup** downloads the current keymap; **Lighting** sets colour/effect.
+4. **Presets** applies a ready-made remap; **Backup** downloads the current
+   keymap; **Lighting** sets colour/effect.
 
 ## Deploying
 

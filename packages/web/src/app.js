@@ -27,6 +27,12 @@ import YAML from "yaml";
 import * as bridge from "./bridge.js";
 import keyboards from "./keyboards.js";
 import modifiers from "./modifiers.js";
+import {
+    PRESET_GROUPS,
+    activeOptionID,
+    applyOption,
+    usableGroups,
+} from "./presets.js";
 import { g, n } from "./tinydom.js";
 
 // Vercel Web Analytics — no-op unless served from a Vercel deployment.
@@ -830,12 +836,132 @@ function renderToolbar() {
     toolbar.appendChild(
         n("div", (group) => {
             group.className = "toolbar-group toolbar-actions";
+            group.appendChild(button("Presets", openPresetsPanel));
             group.appendChild(button("Lighting", openLightingPanel));
             group.appendChild(button("Open", pickConfigFile));
             group.appendChild(button("Save", saveConfigFile));
             group.appendChild(button("Backup", backupConfigFile));
         }),
     );
+}
+
+/** Remappable key IDs of one keymap, including the Fn layer. */
+function layoutKeyIDs(kind, mode) {
+    let ids = new Set();
+    for (let row of keyboards[kind].getLayout(mode)) {
+        for (let key of row) {
+            if (!key.remappable) {
+                continue;
+            }
+            ids.add(key.id);
+            if (key.altID) {
+                ids.add(key.altID);
+            }
+        }
+    }
+    return ids;
+}
+
+function openPresetsPanel() {
+    if (window.keyboardInfo === null) {
+        toast("Connect a keyboard first.", "warning");
+        return;
+    }
+    let groups = usableGroups(PRESET_GROUPS, {
+        keys: layoutKeyIDs(window.keyboardInfo.kind, "win"),
+        mackeys: layoutKeyIDs(window.keyboardInfo.kind, "mac"),
+    });
+
+    let body;
+    // Rebuilt after every click: applying a preset can change which option is
+    // active in *other* groups too (they can share keys).
+    let renderGroups = () => {
+        body.innerHTML = "";
+        let config = window.config.marshall();
+        for (let group of groups) {
+            let active = activeOptionID(group, config);
+            let activeOption = group.options.find(
+                (option) => option.id === active,
+            );
+            body.appendChild(
+                n("div", (section) => {
+                    section.className = "preset-group";
+                    section.appendChild(
+                        n("label", (l) => (l.textContent = group.label)),
+                    );
+                    section.appendChild(
+                        n("p", (p) => {
+                            p.className = "preset-hint";
+                            p.textContent = group.hint;
+                        }),
+                    );
+                    section.appendChild(
+                        n("div", (grid) => {
+                            grid.className = "preset-options";
+                            for (let option of group.options) {
+                                grid.appendChild(
+                                    n("button", (item) => {
+                                        item.type = "button";
+                                        item.className =
+                                            option.id === active
+                                                ? "preset-option selected"
+                                                : "preset-option";
+                                        item.textContent = option.label;
+                                        item.onclick = () => {
+                                            applyPreset(group, option.id);
+                                            renderGroups();
+                                        };
+                                    }),
+                                );
+                            }
+                        }),
+                    );
+                    section.appendChild(
+                        n("p", (p) => {
+                            p.className = "preset-detail";
+                            p.textContent = activeOption
+                                ? activeOption.hint
+                                : "Custom — these keys are mapped by hand, pick an option to replace that.";
+                        }),
+                    );
+                }),
+            );
+        }
+    };
+
+    let overlay = modal((card, close) => {
+        card.appendChild(n("h3", (h) => (h.textContent = "Presets")));
+        card.appendChild(
+            n("p", (p) => {
+                p.className = "lighting-note";
+                p.textContent =
+                    "Ready-made remaps, applied to the Windows and Mac keymaps at once. Nothing reaches the keyboard until you press Write.";
+            }),
+        );
+        card.appendChild(
+            n("div", (e) => {
+                body = e;
+            }),
+        );
+        card.appendChild(
+            n("p", (buttons) => {
+                buttons.className = "modal-buttons";
+                buttons.appendChild(button("Close", close));
+            }),
+        );
+    });
+
+    renderGroups();
+    return overlay;
+}
+
+function applyPreset(group, optionID) {
+    window.config.unmarshall(
+        applyOption(window.config.marshall(), group, optionID),
+    );
+    // The editor below may be showing a key this preset just rewrote.
+    window.currentKey = null;
+    render();
 }
 
 function openLightingPanel() {
