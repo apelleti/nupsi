@@ -1,4 +1,4 @@
-# Nupsi
+# Nupsi, web alternative to NuPhy console
 
 An open-source alternative to the NuPhy Console for the **Air75 / Air60 /
 Halo75 V1** keyboards — a static **web app** that remaps your keys and
