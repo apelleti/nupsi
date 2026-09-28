@@ -239,7 +239,7 @@ export const PRESET_GROUPS = [
         hint: "Top row, left of 🐱.",
         options: keyActionOptions("screenshot", {
             label: "Screenshot",
-            hint: "Win+Shift+S on Windows, ⌘⇧4 on Mac — what the keycap says.",
+            hint: "Print Screen on Windows, ⌘⇧4 on Mac — what the keyboard ships with.",
         }),
     },
     {

@@ -435,13 +435,13 @@ export const Air75 = {
                 new Key({ id: "o" }),
                 new Key({ id: "p" }),
                 new Key({
-                    id: "rbracket",
+                    id: "lbracket",
                     label: "[",
                     name: "Left Bracket",
                     altLabel: "{",
                 }),
                 new Key({
-                    id: "lbracket",
+                    id: "rbracket",
                     label: "]",
                     name: "Right Bracket",
                     altLabel: "}",
@@ -796,13 +796,13 @@ export const Halo75 = {
                 new Key({ id: "o" }),
                 new Key({ id: "p" }),
                 new Key({
-                    id: "rbracket",
+                    id: "lbracket",
                     label: "[",
                     name: "Left Bracket",
                     altLabel: "{",
                 }),
                 new Key({
-                    id: "lbracket",
+                    id: "rbracket",
                     label: "]",
                     name: "Right Bracket",
                     altLabel: "}",

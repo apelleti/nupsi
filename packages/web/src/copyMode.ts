@@ -23,6 +23,9 @@
 // modes (the key left of Space is "lalt" on Windows but "lmeta" on Mac), so
 // copying raw words index by index would scramble them.
 //
+// Keymap slots the layouts don't show (e.g. the Air60's Fn layer, or the
+// Fn+arrow slots) are then paired by name, when both modes have that name.
+//
 // The copy itself is done on the encoded keymaps, word for word, rather than
 // from the layouts' default mappings: those are display hints and don't
 // always match the factory keymap, whereas the words are exactly what gets
@@ -91,7 +94,22 @@ export function copyKeymap(
         { rawOk: true },
     );
     const target = [...keymaps[to]];
-    for (const [fromID, toID] of physicalPairs(layouts[from], layouts[to])) {
+    const pairs = physicalPairs(layouts[from], layouts[to]);
+    // Slots the layouts don't show: pair them by name. Names already used by
+    // a physical pair are skipped on both sides, since the same name can sit
+    // on different keys in the two modes (e.g. lalt).
+    const usedFrom = new Set(pairs.map(([fromID]) => fromID));
+    const usedTo = new Set(pairs.map(([, toID]) => toID));
+    for (const name of Object.keys(descriptor.indicesByKeyName[from])) {
+        if (
+            !usedFrom.has(name) &&
+            !usedTo.has(name) &&
+            name in descriptor.indicesByKeyName[to]
+        ) {
+            pairs.push([name, name]);
+        }
+    }
+    for (const [fromID, toID] of pairs) {
         const fromIndex = descriptor.indicesByKeyName[from][fromID];
         const toIndex = descriptor.indicesByKeyName[to][toID];
         if (fromIndex === undefined || toIndex === undefined) {

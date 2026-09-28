@@ -88,11 +88,7 @@ describe("copyKeymap", () => {
                 const source = physicalWords(kind, descriptor, config, from);
                 const result = physicalWords(kind, descriptor, copied, to);
                 for (const [label, word] of source) {
-                    if (result.has(label)) {
-                        expect(result.get(label), `${kind} ${label}`).toBe(
-                            word,
-                        );
-                    }
+                    expect(result.get(label), `${kind} ${label}`).toBe(word);
                 }
                 // The source keymap is untouched.
                 const section = from === "win" ? "keys" : "mackeys";
@@ -133,5 +129,40 @@ describe("copyKeymap", () => {
         );
         expect(copied.mackeys!.capslock).toEqual({ raw: 0x12345678 });
         expect(copied.mackeys!.fn_f1).toEqual({ key: "mute" });
+    });
+
+    it("copies slots the layouts don't show, by name (Air60 F-row)", () => {
+        const copied = copyKeymap(
+            AIR60,
+            layouts("Air60"),
+            {
+                keys: { f1: { key: "mute" }, pgup: { key: "home" } },
+                mackeys: {},
+            },
+            "win",
+            "mac",
+        );
+        // Neither key is drawn in the Air60 layout (it has no F-row), but
+        // both slots exist in both modes under the same name.
+        expect(copied.mackeys!.f1).toEqual({ key: "mute" });
+        expect(copied.mackeys!.pgup).toEqual({ key: "home" });
+    });
+
+    it("leaves the target alone when both keymaps already match", () => {
+        const config: Config = {
+            keys: { capslock: { key: "esc" } },
+            mackeys: { capslock: { key: "esc" } },
+        };
+        // Halo75's factory Win and Mac keymaps differ, so only compare the
+        // second copy to the first: copying is idempotent.
+        const once = copyKeymap(
+            HALO75,
+            layouts("Halo75"),
+            config,
+            "win",
+            "mac",
+        );
+        const twice = copyKeymap(HALO75, layouts("Halo75"), once, "win", "mac");
+        expect(twice).toEqual(once);
     });
 });

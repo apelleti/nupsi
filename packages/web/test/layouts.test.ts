@@ -52,3 +52,39 @@ describe("Air75 layout matches its keymap data", () => {
         });
     }
 });
+
+describe("every board's layouts", () => {
+    for (const kind of ["Air60", "Air75", "Halo75"]) {
+        for (const mode of ["win", "mac"] as KeyboardMode[]) {
+            it(`${kind} (${mode}): the bracket keys carry their own ids`, () => {
+                const keys = keyboards[kind].getLayout(mode).flat();
+                // The id decides which keymap slot a remap is written to, so
+                // it must match what the keycap shows.
+                expect(keys.find((k: any) => k.label === "[").id).toBe(
+                    "lbracket",
+                );
+                expect(keys.find((k: any) => k.label === "]").id).toBe(
+                    "rbracket",
+                );
+            });
+        }
+
+        it(`${kind}: Windows and Mac layouts line up key for key`, () => {
+            // Copy to Mac / Windows pairs keys by (row, column).
+            const win = keyboards[kind].getLayout("win");
+            const mac = keyboards[kind].getLayout("mac");
+            expect(mac.length).toBe(win.length);
+            win.forEach((row: any[], r: number) => {
+                expect(mac[r].length, `row ${r}`).toBe(row.length);
+                row.forEach((key: any, c: number) => {
+                    const other = mac[r][c];
+                    expect(other.width, `${key.id}`).toBe(key.width);
+                    expect(other.remappable, `${key.id}`).toBe(key.remappable);
+                    expect(Boolean(other.altID), `${key.id}`).toBe(
+                        Boolean(key.altID),
+                    );
+                });
+            });
+        });
+    }
+});

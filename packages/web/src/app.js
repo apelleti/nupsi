@@ -833,7 +833,9 @@ function renderToolbar() {
                 ),
             );
             let copy = button(
-                window.mode === "mac" ? "Copy to Windows" : "Copy to Mac",
+                window.mode === "mac"
+                    ? "Copy all to Windows"
+                    : "Copy all to Mac",
                 showCopyConfirmation,
             );
             copy.title =
@@ -887,7 +889,12 @@ function showCopyConfirmation() {
         );
         card.appendChild(
             n("p", (p) => {
-                p.textContent = `Every key will do the same thing whichever way the side switch is set: the ${label[to]} keymap is replaced, key by key, with what you see now. Nothing is sent to the keyboard until you press Write, and Revert undoes it.`;
+                p.textContent = `The ${label[to]} keymap is replaced, key by key, with what you see now, so each key does the same thing whichever way the side switch is set.`;
+            }),
+        );
+        card.appendChild(
+            n("p", (p) => {
+                p.textContent = `This includes the factory differences between the two modes: the modifier next to Space, the F-row (F-keys vs media) and OS-specific keys will all behave as they do in ${label[from]} mode. Check the list before you Write. Nothing is sent to the keyboard until then; Revert discards all unwritten changes, including this copy.`;
             }),
         );
         card.appendChild(
@@ -910,6 +917,15 @@ function showCopyConfirmation() {
 }
 
 function copyCurrentKeymap(from, to) {
+    // The keyboard may have been unplugged (or be re-read) while the
+    // confirmation was open.
+    if (window.keyboardInfo === null || window.busy) {
+        toast(
+            "The keyboard was disconnected or is busy; try again.",
+            "warning",
+        );
+        return;
+    }
     let kind = window.keyboardInfo.kind;
     let layouts = {
         win: keyboards[kind].getLayout("win"),
