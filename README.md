@@ -28,6 +28,9 @@ the official NuPhy Console — see [`util/nuphy-console-notes.md`](./util/nuphy-
 
 - **Remap any key**, with independent **Windows** and **Mac** layouts (the
   keyboard's physical side switch selects which is live).
+- **Copy to Mac / Copy to Windows**: make the other keymap a key-by-key copy
+  of the one you're editing, so the keyboard behaves the same whichever way
+  the side switch is set (review the diff, then Write).
 - **Reads the keyboard's actual state on connect** — existing remaps show up
   as badges, so what you see is what's on the device.
 - **Confirm-diff before writing**: a clear list of exactly what will change

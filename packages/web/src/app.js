@@ -832,6 +832,14 @@ function renderToolbar() {
                     },
                 ),
             );
+            let copy = button(
+                window.mode === "mac" ? "Copy to Windows" : "Copy to Mac",
+                showCopyConfirmation,
+            );
+            copy.title =
+                "Make both side-switch positions behave the same: the other keymap becomes a copy of this one.";
+            copy.disabled = window.keyboardInfo === null || window.busy;
+            group.appendChild(copy);
         }),
     );
 
@@ -862,6 +870,71 @@ function layoutKeyIDs(kind, mode) {
         }
     }
     return ids;
+}
+
+function showCopyConfirmation() {
+    if (window.keyboardInfo === null || window.busy) {
+        return;
+    }
+    let from = window.mode;
+    let to = from === "mac" ? "win" : "mac";
+    let label = { win: "Windows", mac: "Mac" };
+    modal((card, close) => {
+        card.appendChild(
+            n("h3", (h) => {
+                h.textContent = `Copy the ${label[from]} keymap to ${label[to]}?`;
+            }),
+        );
+        card.appendChild(
+            n("p", (p) => {
+                p.textContent = `Every key will do the same thing whichever way the side switch is set: the ${label[to]} keymap is replaced, key by key, with what you see now. Nothing is sent to the keyboard until you press Write, and Revert undoes it.`;
+            }),
+        );
+        card.appendChild(
+            n("p", (row) => {
+                row.className = "modal-buttons";
+                row.appendChild(button("Cancel", close));
+                row.appendChild(
+                    button(
+                        `Copy to ${label[to]}`,
+                        () => {
+                            close();
+                            copyCurrentKeymap(from, to);
+                        },
+                        "button primary",
+                    ),
+                );
+            }),
+        );
+    });
+}
+
+function copyCurrentKeymap(from, to) {
+    let kind = window.keyboardInfo.kind;
+    let layouts = {
+        win: keyboards[kind].getLayout("win"),
+        mac: keyboards[kind].getLayout("mac"),
+    };
+    let next;
+    try {
+        next = bridge.copyConfigKeymap(
+            window.config.marshall(),
+            layouts,
+            from,
+            to,
+        );
+    } catch (err) {
+        showErrorPanel("Couldn't copy the keymap", err.message);
+        return;
+    }
+    // Keep the current key selection consistent with the new state.
+    window.currentKey = null;
+    window.config.unmarshall(structuredClone(next));
+    render();
+    toast(
+        `${to === "mac" ? "Mac" : "Windows"} keymap now matches. Review, then Write.`,
+        "success",
+    );
 }
 
 function openPresetsPanel() {

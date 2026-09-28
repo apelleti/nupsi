@@ -27,6 +27,7 @@ import {
     validateYamlKeymap,
 } from "@nupsi/core";
 import YAML from "yaml";
+import { Config, Layout, copyKeymap } from "./copyMode.js";
 import {
     isVendorCollection,
     keyboardFromHidDevice,
@@ -105,6 +106,17 @@ export function validateConfig(yamlText: string): void {
 export async function writeConfig(config: unknown): Promise<void> {
     const kb = requireKeyboard();
     await kb.setKeymapFromYaml(YAML.stringify(config), { rawOk: true });
+}
+
+/** Makes the `to` keymap a physical copy of the `from` keymap (see
+ *  copyMode.ts), for the connected keyboard. Nothing is written. */
+export function copyConfigKeymap(
+    config: Config,
+    layouts: Record<"win" | "mac", Layout>,
+    from: "win" | "mac",
+    to: "win" | "mac",
+): Config {
+    return copyKeymap(requireKeyboard().descriptor, layouts, config, from, to);
 }
 
 /** Sets a solid RGB backlight colour and effect. Experimental. */
