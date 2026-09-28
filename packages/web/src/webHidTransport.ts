@@ -1,5 +1,5 @@
 /*
-    Nudelta Console
+    Nupsi, derived from Nudelta Console
     Copyright (C) 2022-2026 Mohamed Gaber
 
     This program is free software: you can redistribute it and/or modify
@@ -83,9 +83,8 @@ export function keyboardFromHidDevice(device: HIDDevice): NuPhyKeyboard {
     }
     return new NuPhyKeyboard(descriptor, {
         productString: device.productName,
-        // WebHID does not expose bcdDevice, so the firmware version is
-        // unavailable in the browser.
-        firmwareVersion: 0,
+        // WebHID does not expose bcdDevice, so firmwareVersion is left
+        // undefined in the browser.
         open: () => openChannels(device),
     });
 }

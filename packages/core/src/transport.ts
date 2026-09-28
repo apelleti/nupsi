@@ -1,5 +1,5 @@
 /*
-    Nudelta Console
+    Nupsi, derived from Nudelta Console
     Copyright (C) 2022-2026 Mohamed Gaber
 
     This program is free software: you can redistribute it and/or modify
@@ -38,8 +38,9 @@ export interface HidChannels {
 export interface DiscoveredKeyboard {
     productString: string;
     manufacturerString?: string;
-    /** bcdDevice, i.e. the firmware version. */
-    firmwareVersion: number;
+    /** bcdDevice, i.e. the firmware version; undefined when the transport
+     *  cannot read it (WebHID does not expose it). */
+    firmwareVersion?: number;
     /** Primary HID path, when the transport has paths (informational). */
     path?: string;
     open(): Promise<HidChannels>;

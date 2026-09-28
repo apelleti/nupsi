@@ -1,5 +1,5 @@
 /*
-    Nudelta Console
+    Nupsi, derived from Nudelta Console
     Copyright (C) 2022-2026 Mohamed Gaber
 
     Licensed under the GNU General Public License v3 or later.

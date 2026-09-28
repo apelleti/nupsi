@@ -28,7 +28,6 @@ function fakeKeyboard(failAt: number): {
     };
     const keyboard = new NuPhyKeyboard(AIR75, {
         productString: AIR75.productString,
-        firmwareVersion: 0,
         open: async () => channels,
     });
     return { keyboard, writes };

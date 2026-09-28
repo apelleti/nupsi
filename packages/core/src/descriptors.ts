@@ -1,5 +1,5 @@
 /*
-    Nudelta Console
+    Nupsi, derived from Nudelta Console
     Copyright (C) 2022-2026 Mohamed Gaber
 
     This program is free software: you can redistribute it and/or modify
