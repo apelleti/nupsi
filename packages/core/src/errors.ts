@@ -36,6 +36,27 @@ export class ProtocolError extends Error {
     override name = "ProtocolError";
 }
 
+/**
+ * A two-mode write failed after the first mode was already written: the
+ * keyboard now holds the new keymap in `written` and the old (or an
+ * unknown) keymap in `failed`.
+ */
+export class PartialWriteError extends Error {
+    override name = "PartialWriteError";
+    constructor(
+        readonly written: "win" | "mac",
+        readonly failed: "win" | "mac",
+        cause: unknown,
+    ) {
+        const label = (m: "win" | "mac") => (m === "mac" ? "Mac" : "Windows");
+        const reason = cause instanceof Error ? cause.message : String(cause);
+        super(
+            `Only part of the configuration was written: the ${label(written)} keymap was updated, but writing the ${label(failed)} keymap failed (${reason}). The keyboard is now in a mixed state — write again, or restore a backup.`,
+            { cause },
+        );
+    }
+}
+
 export function hidAccessFailureMessage(
     platform: "darwin" | "linux" | "win32" | string,
 ): string {

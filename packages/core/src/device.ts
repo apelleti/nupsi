@@ -24,6 +24,7 @@ import {
     parseKeymapReport,
 } from "./protocol.js";
 import { LightingOptions, buildLightingReports } from "./lighting.js";
+import { PartialWriteError } from "./errors.js";
 import { HidChannels, DiscoveredKeyboard } from "./transport.js";
 import { buildKeymapsFromYaml, ValidateOptions } from "./yamlConfig.js";
 
@@ -125,13 +126,32 @@ export class NuPhyKeyboard {
             options,
         );
         // Mac first, then Windows, matching the C++ write order.
-        await this.setKeymap(keymaps.mac, "mac");
-        await this.setKeymap(keymaps.win, "win");
+        await this.setBothKeymaps(["mac", keymaps.mac], ["win", keymaps.win]);
     }
 
     async resetKeymap(): Promise<void> {
-        await this.setKeymap(this.descriptor.defaultKeymap.win, "win");
-        await this.setKeymap(this.descriptor.defaultKeymap.mac, "mac");
+        await this.setBothKeymaps(
+            ["win", this.descriptor.defaultKeymap.win],
+            ["mac", this.descriptor.defaultKeymap.mac],
+        );
+    }
+
+    /**
+     * Writes two modes in order. If the second write fails after the first
+     * succeeded, throws a PartialWriteError so callers can tell the user the
+     * keyboard is in a mixed state; a failure on the first write is rethrown
+     * as is (nothing was changed).
+     */
+    private async setBothKeymaps(
+        first: [KeyboardMode, readonly number[]],
+        second: [KeyboardMode, readonly number[]],
+    ): Promise<void> {
+        await this.setKeymap(first[1], first[0]);
+        try {
+            await this.setKeymap(second[1], second[0]);
+        } catch (err) {
+            throw new PartialWriteError(first[0], second[0], err);
+        }
     }
 
     /**

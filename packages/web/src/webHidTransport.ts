@@ -49,10 +49,10 @@ async function openChannels(device: HIDDevice): Promise<HidChannels> {
     // request and data channels are therefore the same device here.
     return {
         async sendRequestReport(report) {
-            await device.sendFeatureReport(report[0]!, report.subarray(1));
+            await device.sendFeatureReport(report[0]!, report.slice(1));
         },
         async sendDataReport(report) {
-            await device.sendFeatureReport(report[0]!, report.subarray(1));
+            await device.sendFeatureReport(report[0]!, report.slice(1));
         },
         async receiveDataReport(reportId) {
             // Chrome's returned DataView includes the report ID as byte 0,

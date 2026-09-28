@@ -673,7 +673,9 @@ function downloadYaml(filename, object) {
         e.download = filename;
     });
     anchor.click();
-    URL.revokeObjectURL(anchor.href);
+    // Revoking synchronously can abort the download in some browsers; give
+    // it a moment to start first.
+    setTimeout(() => URL.revokeObjectURL(anchor.href), 1000);
 }
 
 function saveConfigFile() {
