@@ -9,6 +9,11 @@ rshift: 82
 rmeta: 53
 fn: 59
 
+up: 149
+down: 150
+left: 151
+right: 152
+
 pgup: 91
 pgdn: 92
 home: 93
@@ -65,8 +70,8 @@ semicolon: 63
 minus: 67
 equal: 73
 quote: 69
-lbracket: 159
-rbracket: 68
+lbracket: 68
+rbracket: 159
 backslash: 160
 fwdslash: 64
 comma: 164

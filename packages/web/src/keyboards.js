@@ -388,8 +388,8 @@ export const Air75 = {
                     id: "screenshot",
                     color: "gray",
                     label: "✂️",
-                    defaultMapping: mac ? "num4" : "s",
-                    defaultModifiers: ["meta", "shift"],
+                    defaultMapping: mac ? "num4" : "sysrq",
+                    defaultModifiers: mac ? ["meta", "shift"] : [],
                 }),
                 new Key({
                     id: "assistant",
